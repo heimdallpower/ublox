@@ -35,14 +35,18 @@
 #include <ublox_msgs/NavDOP.h>
 #include <ublox_msgs/NavHPPOSECEF.h>
 #include <ublox_msgs/NavHPPOSLLH.h>
+#include <ublox_msgs/NavHPPOSLLHStamped.h>
 #include <ublox_msgs/NavPOSECEF.h>
 #include <ublox_msgs/NavPOSLLH.h>
 #include <ublox_msgs/NavRELPOSNED.h>
 #include <ublox_msgs/NavRELPOSNED9.h>
+#include <ublox_msgs/NavRELPOSNED9Stamped.h>
 #include <ublox_msgs/NavSBAS.h>
 #include <ublox_msgs/NavSOL.h>
 #include <ublox_msgs/NavPVT.h>
+#include <ublox_msgs/NavPVTStamped.h>
 #include <ublox_msgs/NavPVT7.h>
+#include <ublox_msgs/NavPVT7Stamped.h>
 #include <ublox_msgs/NavSTATUS.h>
 #include <ublox_msgs/NavSAT.h>
 #include <ublox_msgs/NavSVIN.h>
@@ -160,13 +164,18 @@ namespace Message {
     static const uint8_t DOP = NavDOP::MESSAGE_ID;
     static const uint8_t HPPOSECEF = NavHPPOSECEF::MESSAGE_ID;
     static const uint8_t HPPOSLLH = NavHPPOSLLH::MESSAGE_ID;
+    static const uint8_t HPPOSLLHStamped = NavHPPOSLLH::MESSAGE_ID;
     static const uint8_t POSECEF = NavPOSECEF::MESSAGE_ID;
     static const uint8_t POSLLH = NavPOSLLH::MESSAGE_ID;
     static const uint8_t RELPOSNED = NavRELPOSNED::MESSAGE_ID;
     static const uint8_t RELPOSNED9 = NavRELPOSNED9::MESSAGE_ID;
+    static const uint8_t RELPOSNED9Stamped = NavRELPOSNED9::MESSAGE_ID;
     static const uint8_t SBAS = NavSBAS::MESSAGE_ID;
     static const uint8_t SOL = NavSOL::MESSAGE_ID;
     static const uint8_t PVT = NavPVT::MESSAGE_ID;
+    static const uint8_t PVTStamped = NavPVT::MESSAGE_ID;
+    static const uint8_t PVT7 = NavPVT::MESSAGE_ID;
+    static const uint8_t PVT7Stamped = NavPVT::MESSAGE_ID;
     static const uint8_t SAT = NavSAT::MESSAGE_ID;
     static const uint8_t STATUS = NavSTATUS::MESSAGE_ID;
     static const uint8_t SVINFO = NavSVINFO::MESSAGE_ID;

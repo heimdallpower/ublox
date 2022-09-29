@@ -1236,28 +1236,30 @@ bool UbloxFirmware8::configureUblox() {
 
 void UbloxFirmware8::subscribe() {
   // Whether to publish Nav PVT messages
-  nh->param("publish/nav/pvt", enabled["nav_pvt"], enabled["nav"]);
+  // nh->param("publish/nav/pvt", enabled["nav_pvt"], enabled["nav"]);
   // Subscribe to Nav PVT
+  UbloxFirmware7Plus::navpvt_stamped_pub_ = nh->advertise<ublox_msgs::NavPVTStamped>("navpvt/stamped", kROSQueueSize);
+  UbloxFirmware7Plus::navpvt_pub_         = nh->advertise<ublox_msgs::NavPVT>("navpvt", kROSQueueSize);
   gps.subscribe<ublox_msgs::NavPVT>(
     boost::bind(&UbloxFirmware7Plus::callbackNavPvt, this, _1), kSubscribeRate);
 
-  // Subscribe to Nav SAT messages
-  nh->param("publish/nav/sat", enabled["nav_sat"], enabled["nav"]);
-  if (enabled["nav_sat"])
-    gps.subscribe<ublox_msgs::NavSAT>(boost::bind(
-        publish<ublox_msgs::NavSAT>, _1, "navsat"), kNavSvInfoSubscribeRate);
+  // // Subscribe to Nav SAT messages
+  // nh->param("publish/nav/sat", enabled["nav_sat"], enabled["nav"]);
+  // if (enabled["nav_sat"])
+  //   gps.subscribe<ublox_msgs::NavSAT>(boost::bind(
+  //       publish<ublox_msgs::NavSAT>, _1, "navsat"), kNavSvInfoSubscribeRate);
 
-  // Subscribe to Mon HW
-  nh->param("publish/mon/hw", enabled["mon_hw"], enabled["mon"]);
-  if (enabled["mon_hw"])
-    gps.subscribe<ublox_msgs::MonHW>(boost::bind(
-        publish<ublox_msgs::MonHW>, _1, "monhw"), kSubscribeRate);
+  // // Subscribe to Mon HW
+  // nh->param("publish/mon/hw", enabled["mon_hw"], enabled["mon"]);
+  // if (enabled["mon_hw"])
+  //   gps.subscribe<ublox_msgs::MonHW>(boost::bind(
+  //       publish<ublox_msgs::MonHW>, _1, "monhw"), kSubscribeRate);
 
-  // Subscribe to RTCM messages
-  nh->param("publish/rxm/rtcm", enabled["rxm_rtcm"], enabled["rxm"]);
-  if (enabled["rxm_rtcm"])
-    gps.subscribe<ublox_msgs::RxmRTCM>(boost::bind(
-        publish<ublox_msgs::RxmRTCM>, _1, "rxmrtcm"), kSubscribeRate);
+  // // Subscribe to RTCM messages
+  // nh->param("publish/rxm/rtcm", enabled["rxm_rtcm"], enabled["rxm"]);
+  // if (enabled["rxm_rtcm"])
+  //   gps.subscribe<ublox_msgs::RxmRTCM>(boost::bind(
+  //       publish<ublox_msgs::RxmRTCM>, _1, "rxmrtcm"), kSubscribeRate);
 }
 
 //
@@ -1723,13 +1725,17 @@ void HpPosRecProduct::subscribe() {
   nh->param("publish/nav/hpposllh", enabled["nav_hpposllh"], enabled["nav"]);
 
   // Subscribe to Nav High Precision Position LLH
-  if (enabled["nav_hpposllh"] || enabled["nav_hpfix"])
-    gps.subscribe<ublox_msgs::NavHPPOSLLH>(boost::bind(
-        &HpPosRecProduct::callbackNavHpPosLlh, this, _1), kSubscribeRate);
+  // if (enabled["nav_hpposllh"] || enabled["nav_hpfix"])
+  hpposllh_stamped_pub_ = nh->advertise<ublox_msgs::NavHPPOSLLHStamped>("navhpposllh/stamped", kROSQueueSize);
+  hpposllh_pub_ = nh->advertise<ublox_msgs::NavHPPOSLLH>("navhpposllh", kROSQueueSize);
+  gps.subscribe<ublox_msgs::NavHPPOSLLH>(boost::bind(
+      &HpPosRecProduct::callbackNavHpPosLlh, this, _1), kSubscribeRate);
 
   // Whether to publish Nav Relative Position NED
-  nh->param("publish/nav/relposned", enabled["nav_relposned"], enabled["nav"]);
+  // nh->param("publish/nav/relposned", enabled["nav_relposned"], enabled["nav"]);
   // Subscribe to Nav Relative Position NED messages (also updates diagnostics)
+  relposned_stamped_pub_ = nh->advertise<ublox_msgs::NavRELPOSNED9Stamped>("navrelposned/stamped", kROSQueueSize);
+  relposned_pub_ = nh->advertise<ublox_msgs::NavRELPOSNED9>("navrelposned", kROSQueueSize);
   gps.subscribe<ublox_msgs::NavRELPOSNED9>(boost::bind(
      &HpPosRecProduct::callbackNavRelPosNed, this, _1), kSubscribeRate);
 
@@ -1737,84 +1743,86 @@ void HpPosRecProduct::subscribe() {
   nh->param("publish/nav/heading", enabled["nav_heading"], enabled["nav"]);
 }
 
-void HpPosRecProduct::callbackNavHpPosLlh(const ublox_msgs::NavHPPOSLLH& m) {
-  if (enabled["nav_hpposllh"]) {
-    static ros::Publisher publisher =
-        nh->advertise<ublox_msgs::NavHPPOSLLH>("navhpposllh", kROSQueueSize);
-    publisher.publish(m);
-  }
+void HpPosRecProduct::callbackNavHpPosLlh(const ublox_msgs::NavHPPOSLLH& msg) {
+  ublox_msgs::NavHPPOSLLHStamped stamped_msg;
+  stamped_msg.header.stamp  = ros::Time::now();
+  stamped_msg.hpposllh      = msg;
+  
+  hpposllh_stamped_pub_.publish(stamped_msg);
+  hpposllh_pub_.publish(msg);
 
-  if (enabled["nav_hpfix"]) {
-    sensor_msgs::NavSatFix fix_msg;
-    static ros::Publisher fixPublisher =
-        nh->advertise<sensor_msgs::NavSatFix>("hp_fix", kROSQueueSize);
+  // if (enabled["nav_hpfix"]) {
+  //   sensor_msgs::NavSatFix fix_msg;
+  //   static ros::Publisher fixPublisher =
+  //       nh->advertise<sensor_msgs::NavSatFix>("hp_fix", kROSQueueSize);
 
-    fix_msg.header.stamp = ros::Time::now();
-    fix_msg.header.frame_id = frame_id;
-    fix_msg.latitude = m.lat * 1e-7 + m.latHp * 1e-9;
-    fix_msg.longitude = m.lon * 1e-7 + m.lonHp * 1e-9;
-    fix_msg.altitude = m.height * 1e-3 + m.heightHp * 1e-4;
+  //   fix_msg.header.stamp = ros::Time::now();
+  //   fix_msg.header.frame_id = frame_id;
+  //   fix_msg.latitude = m.lat * 1e-7 + m.latHp * 1e-9;
+  //   fix_msg.longitude = m.lon * 1e-7 + m.lonHp * 1e-9;
+  //   fix_msg.altitude = m.height * 1e-3 + m.heightHp * 1e-4;
 
-    if (m.invalid_llh) {
-      fix_msg.status.status = fix_msg.status.STATUS_NO_FIX;
-    } else {
-      fix_msg.status.status = fix_msg.status.STATUS_FIX;
-    }
+  //   if (m.invalid_llh) {
+  //     fix_msg.status.status = fix_msg.status.STATUS_NO_FIX;
+  //   } else {
+  //     fix_msg.status.status = fix_msg.status.STATUS_FIX;
+  //   }
 
-    // Convert from mm to m
-    const double varH = pow(m.hAcc / 10000.0, 2);
-    const double varV = pow(m.vAcc / 10000.0, 2);
+  //   // Convert from mm to m
+  //   const double varH = pow(m.hAcc / 10000.0, 2);
+  //   const double varV = pow(m.vAcc / 10000.0, 2);
 
-    fix_msg.position_covariance[0] = varH;
-    fix_msg.position_covariance[4] = varH;
-    fix_msg.position_covariance[8] = varV;
-    fix_msg.position_covariance_type =
-        sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+  //   fix_msg.position_covariance[0] = varH;
+  //   fix_msg.position_covariance[4] = varH;
+  //   fix_msg.position_covariance[8] = varV;
+  //   fix_msg.position_covariance_type =
+  //       sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
-    fix_msg.status.service = fix_msg.status.SERVICE_GPS;
-    fixPublisher.publish(fix_msg);
-  }
+  //   fix_msg.status.service = fix_msg.status.SERVICE_GPS;
+  //   fixPublisher.publish(fix_msg);
+  // }
 }
 
-void HpPosRecProduct::callbackNavRelPosNed(const ublox_msgs::NavRELPOSNED9 &m) {
-  if (enabled["nav_relposned"]) {
-    static ros::Publisher publisher =
-        nh->advertise<ublox_msgs::NavRELPOSNED9>("navrelposned", kROSQueueSize);
-    publisher.publish(m);
-  }
+void HpPosRecProduct::callbackNavRelPosNed(const ublox_msgs::NavRELPOSNED9 &msg) {
+  ublox_msgs::NavRELPOSNED9Stamped stamped_msg;
+  stamped_msg.header.stamp  = ros::Time::now();
+  stamped_msg.relposned     = msg;
+  
+  hpposllh_stamped_pub_.publish(stamped_msg);
+  hpposllh_pub_.publish(msg);
 
-  if (enabled["nav_heading"]) {
-    static ros::Publisher imu_pub =
-	      nh->advertise<sensor_msgs::Imu>("navheading", kROSQueueSize);
+  // if (enabled["nav_heading"]) {
+  //   static ros::Publisher imu_pub =
+	//       nh->advertise<sensor_msgs::Imu>("navheading", kROSQueueSize);
 
-    imu_.header.stamp = ros::Time::now();
-    imu_.header.frame_id = frame_id;
+  //   imu_.header.stamp = ros::Time::now();
+  //   imu_.header.frame_id = frame_id;
 
-    imu_.linear_acceleration_covariance[0] = -1;
-    imu_.angular_velocity_covariance[0] = -1;
+  //   imu_.linear_acceleration_covariance[0] = -1;
+  //   imu_.angular_velocity_covariance[0] = -1;
 
-    // Transform angle since ublox is representing heading as NED but ROS uses ENU as convention (REP-103).
-    double heading = M_PI_2 - (static_cast<double>(m.relPosHeading) * 1e-5 / 180.0 * M_PI);
-    tf::Quaternion orientation;
-    orientation.setRPY(0, 0, heading);
-    imu_.orientation.x = orientation[0];
-    imu_.orientation.y = orientation[1];
-    imu_.orientation.z = orientation[2];
-    imu_.orientation.w = orientation[3];
-    imu_.orientation_covariance[0] = 1000.0;
-    imu_.orientation_covariance[4] = 1000.0;
-    imu_.orientation_covariance[8] = 1000.0;
-    // When heading is reported to be valid, use accuracy reported in 1e-5 deg units
-    if (m.flags & ublox_msgs::NavRELPOSNED9::FLAGS_REL_POS_HEAD_VALID)
-    {
-      imu_.orientation_covariance[8] = pow(m.accHeading * 1e-5 / 180.0 * M_PI, 2);
-    }
+  //   // Transform angle since ublox is representing heading as NED but ROS uses ENU as convention (REP-103).
+  //   double heading = M_PI_2 - (static_cast<double>(m.relPosHeading) * 1e-5 / 180.0 * M_PI);
+  //   tf::Quaternion orientation;
+  //   orientation.setRPY(0, 0, heading);
+  //   imu_.orientation.x = orientation[0];
+  //   imu_.orientation.y = orientation[1];
+  //   imu_.orientation.z = orientation[2];
+  //   imu_.orientation.w = orientation[3];
+  //   imu_.orientation_covariance[0] = 1000.0;
+  //   imu_.orientation_covariance[4] = 1000.0;
+  //   imu_.orientation_covariance[8] = 1000.0;
+  //   // When heading is reported to be valid, use accuracy reported in 1e-5 deg units
+  //   if (m.flags & ublox_msgs::NavRELPOSNED9::FLAGS_REL_POS_HEAD_VALID)
+  //   {
+  //     imu_.orientation_covariance[8] = pow(m.accHeading * 1e-5 / 180.0 * M_PI, 2);
+  //   }
 
-    imu_pub.publish(imu_);
-  }
+  //   imu_pub.publish(imu_);
+  // }
 
-  last_rel_pos_ = m;
-  updater->update();
+  // last_rel_pos_ = m;
+  // updater->update();
 }
 
 //

@@ -43,6 +43,8 @@ DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::HPPOSECE
                       ublox_msgs, NavHPPOSECEF);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::HPPOSLLH,
                       ublox_msgs, NavHPPOSLLH);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::HPPOSLLH,
+                      ublox_msgs, NavHPPOSLLHStamped);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::POSECEF, 
                       ublox_msgs, NavPOSECEF);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::POSLLH, 
@@ -55,6 +57,10 @@ DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV,
                       ublox_msgs::Message::NAV::RELPOSNED9,
                       ublox_msgs,
                       NavRELPOSNED9);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV,
+                      ublox_msgs::Message::NAV::RELPOSNED9,
+                      ublox_msgs,
+                      NavRELPOSNED9Stamped);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::SBAS, 
                       ublox_msgs, NavSBAS);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::SOL, 
@@ -62,7 +68,11 @@ DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::SOL,
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::PVT, 
                       ublox_msgs, NavPVT);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::PVT, 
+                      ublox_msgs, NavPVTStamped);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::PVT, 
                       ublox_msgs, NavPVT7);
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::PVT, 
+                      ublox_msgs, NavPVT7Stamped);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::SAT, 
                       ublox_msgs, NavSAT);
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::NAV, ublox_msgs::Message::NAV::STATUS, 

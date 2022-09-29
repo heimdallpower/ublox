@@ -773,7 +773,7 @@ class UbloxFirmware6 : public UbloxFirmware {
  *
  * @typedef NavPVT the NavPVT message type for the given firmware version
  */
-template<typename NavPVT>
+template<typename NavPVT, typename NavPVTStamped>
 class UbloxFirmware7Plus : public UbloxFirmware {
  public:
   /**
@@ -784,100 +784,106 @@ class UbloxFirmware7Plus : public UbloxFirmware {
    * is published. This function also calls the ROS diagnostics updater.
    * @param m the message to publish
    */
-  void callbackNavPvt(const NavPVT& m) {
-    if(enabled["nav_pvt"]) {
-      // NavPVT publisher
-      static ros::Publisher publisher = nh->advertise<NavPVT>("navpvt",
-                                                              kROSQueueSize);
-      publisher.publish(m);
-    }
+  void callbackNavPvt(const NavPVT& msg) {
+    NavPVTStamped stamped_msg;
+    stamped_msg.header.stamp  = ros::Time::now();
+    stamped_msg.pvt           = msg;
+
+    navpvt_stamped_pub_.publish(stamped_msg);
+    navpvt_pub_.publish(msg);
+    // if(enabled["nav_pvt"]) {
+    //   // NavPVT publisher
+    //   static ros::Publisher publisher = nh->advertise<NavPVT>("navpvt",
+    //                                                           kROSQueueSize);
+    //   publisher.publish(msg);
+    // }
 
     //
     // NavSatFix message
     //
-    static ros::Publisher fixPublisher =
-        nh->advertise<sensor_msgs::NavSatFix>("fix", kROSQueueSize);
+    // static ros::Publisher fixPublisher =
+    //     nh->advertise<sensor_msgs::NavSatFix>("fix", kROSQueueSize);
 
-    sensor_msgs::NavSatFix fix;
-    fix.header.frame_id = frame_id;
-    // set the timestamp
-    uint8_t valid_time = m.VALID_DATE | m.VALID_TIME | m.VALID_FULLY_RESOLVED;
-    if (((m.valid & valid_time) == valid_time) &&
-        (m.flags2 & m.FLAGS2_CONFIRMED_AVAILABLE)) {
-      // Use NavPVT timestamp since it is valid
-      // The time in nanoseconds from the NavPVT message can be between -1e9 and 1e9
-      //  The ros time uses only unsigned values, so a negative nano seconds must be
-      //  converted to a positive value
-      if (m.nano < 0) {
-        fix.header.stamp.sec = toUtcSeconds(m) - 1;
-        fix.header.stamp.nsec = (uint32_t)(m.nano + 1e9);
-      }
-      else {
-        fix.header.stamp.sec = toUtcSeconds(m);
-        fix.header.stamp.nsec = (uint32_t)(m.nano);
-      }
-    } else {
-      // Use ROS time since NavPVT timestamp is not valid
-      fix.header.stamp = ros::Time::now();
-    }
-    // Set the LLA
-    fix.latitude = m.lat * 1e-7; // to deg
-    fix.longitude = m.lon * 1e-7; // to deg
-    fix.altitude = m.height * 1e-3; // to [m]
-    // Set the Fix status
-    bool fixOk = m.flags & m.FLAGS_GNSS_FIX_OK;
-    if (fixOk && m.fixType >= m.FIX_TYPE_2D) {
-      fix.status.status = fix.status.STATUS_FIX;
-      if(m.flags & m.CARRIER_PHASE_FIXED)
-        fix.status.status = fix.status.STATUS_GBAS_FIX;
-    }
-    else {
-      fix.status.status = fix.status.STATUS_NO_FIX;
-    }
-    // Set the service based on GNSS configuration
-    fix.status.service = fix_status_service;
+    // sensor_msgs::NavSatFix fix;
+    // fix.header.frame_id = frame_id;
+    // // set the timestamp
+    // uint8_t valid_time = msg.VALID_DATE | msg.VALID_TIME | msg.VALID_FULLY_RESOLVED;
+    // if (((msg.valid & valid_time) == valid_time) &&
+    //     (msg.flags2 & msg.FLAGS2_CONFIRMED_AVAILABLE)) {
+    //   // Use NavPVT timestamp since it is valid
+    //   // The time in nanoseconds from the NavPVT message can be between -1e9 and 1e9
+    //   //  The ros time uses only unsigned values, so a negative nano seconds must be
+    //   //  converted to a positive value
+    //   if (msg.nano < 0) {
+    //     fix.header.stamp.sec = toUtcSeconds(msg) - 1;
+    //     fix.header.stamp.nsec = (uint32_t)(msg.nano + 1e9);
+    //   }
+    //   else {
+    //     fix.header.stamp.sec = toUtcSeconds(msg);
+    //     fix.header.stamp.nsec = (uint32_t)(msg.nano);
+    //   }
+    // } else {
+    //   // Use ROS time since NavPVT timestamp is not valid
+    //   fix.header.stamp = ros::Time::now();
+    // }
+    // // Set the LLA
+    // fix.latitude = msg.lat * 1e-7; // to deg
+    // fix.longitude = msg.lon * 1e-7; // to deg
+    // fix.altitude = msg.height * 1e-3; // to [m]
+    // // Set the Fix status
+    // bool fixOk = msg.flags & msg.FLAGS_GNSS_FIX_OK;
+    // if (fixOk && msg.fixType >= msg.FIX_TYPE_2D) {
+    //   fix.status.status = fix.status.STATUS_FIX;
+    //   if(msg.flags & msg.CARRIER_PHASE_FIXED)
+    //     fix.status.status = fix.status.STATUS_GBAS_FIX;
+    // }
+    // else {
+    //   fix.status.status = fix.status.STATUS_NO_FIX;
+    // }
+    // // Set the service based on GNSS configuration
+    // fix.status.service = fix_status_service;
 
-    // Set the position covariance
-    const double varH = pow(m.hAcc / 1000.0, 2); // to [m^2]
-    const double varV = pow(m.vAcc / 1000.0, 2); // to [m^2]
-    fix.position_covariance[0] = varH;
-    fix.position_covariance[4] = varH;
-    fix.position_covariance[8] = varV;
-    fix.position_covariance_type =
-        sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+    // // Set the position covariance
+    // const double varH = pow(msg.hAcc / 1000.0, 2); // to [m^2]
+    // const double varV = pow(msg.vAcc / 1000.0, 2); // to [m^2]
+    // fix.position_covariance[0] = varH;
+    // fix.position_covariance[4] = varH;
+    // fix.position_covariance[8] = varV;
+    // fix.position_covariance_type =
+    //     sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
-    fixPublisher.publish(fix);
+    // fixPublisher.publish(fix);
 
-    //
-    // Twist message
-    //
-    static ros::Publisher velocityPublisher =
-        nh->advertise<geometry_msgs::TwistWithCovarianceStamped>("fix_velocity",
-                                                                 kROSQueueSize);
-    geometry_msgs::TwistWithCovarianceStamped velocity;
-    velocity.header.stamp = fix.header.stamp;
-    velocity.header.frame_id = frame_id;
+    // //
+    // // Twist message
+    // //
+    // static ros::Publisher velocityPublisher =
+    //     nh->advertise<geometry_msgs::TwistWithCovarianceStamped>("fix_velocity",
+    //                                                              kROSQueueSize);
+    // geometry_msgs::TwistWithCovarianceStamped velocity;
+    // velocity.header.stamp = fix.header.stamp;
+    // velocity.header.frame_id = frame_id;
 
-    // convert to XYZ linear velocity [m/s] in ENU
-    velocity.twist.twist.linear.x = m.velE * 1e-3;
-    velocity.twist.twist.linear.y = m.velN * 1e-3;
-    velocity.twist.twist.linear.z = -m.velD * 1e-3;
-    // Set the covariance
-    const double covSpeed = pow(m.sAcc * 1e-3, 2);
-    const int cols = 6;
-    velocity.twist.covariance[cols * 0 + 0] = covSpeed;
-    velocity.twist.covariance[cols * 1 + 1] = covSpeed;
-    velocity.twist.covariance[cols * 2 + 2] = covSpeed;
-    velocity.twist.covariance[cols * 3 + 3] = -1;  //  angular rate unsupported
+    // // convert to XYZ linear velocity [m/s] in ENU
+    // velocity.twist.twist.linear.x = msg.velE * 1e-3;
+    // velocity.twist.twist.linear.y = msg.velN * 1e-3;
+    // velocity.twist.twist.linear.z = -msg.velD * 1e-3;
+    // // Set the covariance
+    // const double covSpeed = pow(msg.sAcc * 1e-3, 2);
+    // const int cols = 6;
+    // velocity.twist.covariance[cols * 0 + 0] = covSpeed;
+    // velocity.twist.covariance[cols * 1 + 1] = covSpeed;
+    // velocity.twist.covariance[cols * 2 + 2] = covSpeed;
+    // velocity.twist.covariance[cols * 3 + 3] = -1;  //  angular rate unsupported
 
-    velocityPublisher.publish(velocity);
+    // velocityPublisher.publish(velocity);
 
-    //
-    // Update diagnostics
-    //
-    last_nav_pvt_ = m;
-    freq_diag->diagnostic->tick(fix.header.stamp);
-    updater->update();
+    // //
+    // // Update diagnostics
+    // //
+    // last_nav_pvt_ = msg;
+    // freq_diag->diagnostic->tick(fix.header.stamp);
+    // updater->update();
   }
 
  protected:
@@ -887,67 +893,70 @@ class UbloxFirmware7Plus : public UbloxFirmware {
    */
   void fixDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat) {
     // check the last message, convert to diagnostic
-    if (last_nav_pvt_.fixType ==
-        ublox_msgs::NavPVT::FIX_TYPE_DEAD_RECKONING_ONLY) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-      stat.message = "Dead reckoning only";
-    } else if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_2D) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-      stat.message = "2D fix";
-    } else if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_3D) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-      stat.message = "3D fix";
-    } else if (last_nav_pvt_.fixType ==
-               ublox_msgs::NavPVT::FIX_TYPE_GNSS_DEAD_RECKONING_COMBINED) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-      stat.message = "GPS and dead reckoning combined";
-    } else if (last_nav_pvt_.fixType ==
-               ublox_msgs::NavPVT::FIX_TYPE_TIME_ONLY) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-      stat.message = "Time only fix";
-    }
+    // if (last_nav_pvt_.fixType ==
+    //     ublox_msgs::NavPVT::FIX_TYPE_DEAD_RECKONING_ONLY) {
+    //   stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
+    //   stat.message = "Dead reckoning only";
+    // } else if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_2D) {
+    //   stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
+    //   stat.message = "2D fix";
+    // } else if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_3D) {
+    //   stat.level = diagnostic_msgs::DiagnosticStatus::OK;
+    //   stat.message = "3D fix";
+    // } else if (last_nav_pvt_.fixType ==
+    //            ublox_msgs::NavPVT::FIX_TYPE_GNSS_DEAD_RECKONING_COMBINED) {
+    //   stat.level = diagnostic_msgs::DiagnosticStatus::OK;
+    //   stat.message = "GPS and dead reckoning combined";
+    // } else if (last_nav_pvt_.fixType ==
+    //            ublox_msgs::NavPVT::FIX_TYPE_TIME_ONLY) {
+    //   stat.level = diagnostic_msgs::DiagnosticStatus::OK;
+    //   stat.message = "Time only fix";
+    // }
     
-    // Check whether differential GNSS available
-    if (last_nav_pvt_.flags & ublox_msgs::NavPVT::FLAGS_DIFF_SOLN) {
-      stat.message += ", DGNSS";
-    } 
-    // If DGNSS, then update the differential solution status
-    if (last_nav_pvt_.flags & ublox_msgs::NavPVT::CARRIER_PHASE_FLOAT) {
-      stat.message += ", FLOAT FIX";
-    } else if (last_nav_pvt_.flags & ublox_msgs::NavPVT::CARRIER_PHASE_FIXED) {
-      stat.message += ", RTK FIX";
-    }
+    // // Check whether differential GNSS available
+    // if (last_nav_pvt_.flags & ublox_msgs::NavPVT::FLAGS_DIFF_SOLN) {
+    //   stat.message += ", DGNSS";
+    // } 
+    // // If DGNSS, then update the differential solution status
+    // if (last_nav_pvt_.flags & ublox_msgs::NavPVT::CARRIER_PHASE_FLOAT) {
+    //   stat.message += ", FLOAT FIX";
+    // } else if (last_nav_pvt_.flags & ublox_msgs::NavPVT::CARRIER_PHASE_FIXED) {
+    //   stat.message += ", RTK FIX";
+    // }
 
-    // If fix not ok (w/in DOP & Accuracy Masks), raise the diagnostic level
-    if (!(last_nav_pvt_.flags & ublox_msgs::NavPVT::FLAGS_GNSS_FIX_OK)) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-      stat.message += ", fix not ok";
-    }
-    // Raise diagnostic level to error if no fix
-    if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_NO_FIX) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::ERROR;
-      stat.message = "No fix";
-    }
+    // // If fix not ok (w/in DOP & Accuracy Masks), raise the diagnostic level
+    // if (!(last_nav_pvt_.flags & ublox_msgs::NavPVT::FLAGS_GNSS_FIX_OK)) {
+    //   stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
+    //   stat.message += ", fix not ok";
+    // }
+    // // Raise diagnostic level to error if no fix
+    // if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_NO_FIX) {
+    //   stat.level = diagnostic_msgs::DiagnosticStatus::ERROR;
+    //   stat.message = "No fix";
+    // }
 
-    // append last fix position
-    stat.add("iTOW [ms]", last_nav_pvt_.iTOW);
-    std::ostringstream gnss_coor;
-    gnss_coor << std::fixed << std::setprecision(7);
-    gnss_coor << (last_nav_pvt_.lat * 1e-7);
-    stat.add("Latitude [deg]", gnss_coor.str());
-    gnss_coor.str("");
-    gnss_coor.clear();
-    gnss_coor << (last_nav_pvt_.lon * 1e-7);
-    stat.add("Longitude [deg]", gnss_coor.str());
-    stat.add("Altitude [m]", last_nav_pvt_.height * 1e-3);
-    stat.add("Height above MSL [m]", last_nav_pvt_.hMSL * 1e-3);
-    stat.add("Horizontal Accuracy [m]", last_nav_pvt_.hAcc * 1e-3);
-    stat.add("Vertical Accuracy [m]", last_nav_pvt_.vAcc * 1e-3);
-    stat.add("# SVs used", (int)last_nav_pvt_.numSV);
+    // // append last fix position
+    // stat.add("iTOW [ms]", last_nav_pvt_.iTOW);
+    // std::ostringstream gnss_coor;
+    // gnss_coor << std::fixed << std::setprecision(7);
+    // gnss_coor << (last_nav_pvt_.lat * 1e-7);
+    // stat.add("Latitude [deg]", gnss_coor.str());
+    // gnss_coor.str("");
+    // gnss_coor.clear();
+    // gnss_coor << (last_nav_pvt_.lon * 1e-7);
+    // stat.add("Longitude [deg]", gnss_coor.str());
+    // stat.add("Altitude [m]", last_nav_pvt_.height * 1e-3);
+    // stat.add("Height above MSL [m]", last_nav_pvt_.hMSL * 1e-3);
+    // stat.add("Horizontal Accuracy [m]", last_nav_pvt_.hAcc * 1e-3);
+    // stat.add("Vertical Accuracy [m]", last_nav_pvt_.vAcc * 1e-3);
+    // stat.add("# SVs used", (int)last_nav_pvt_.numSV);
   }
 
   //! The last received NavPVT message
-  NavPVT last_nav_pvt_;
+  // NavPVT last_nav_pvt_;
+
+  ros::Publisher navpvt_pub_;
+  ros::Publisher navpvt_stamped_pub_;
   // Whether or not to enable the given GNSS
   //! Whether or not to enable GPS
   bool enable_gps_;
@@ -964,7 +973,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
 /**
  * @brief Implements functions for firmware version 7.
  */
-class UbloxFirmware7 : public UbloxFirmware7Plus<ublox_msgs::NavPVT7> {
+class UbloxFirmware7 : public UbloxFirmware7Plus<ublox_msgs::NavPVT7, ublox_msgs::NavPVT7Stamped> {
  public:
   UbloxFirmware7();
 
@@ -1000,7 +1009,7 @@ class UbloxFirmware7 : public UbloxFirmware7Plus<ublox_msgs::NavPVT7> {
 /**
  *  @brief Implements functions for firmware version 8.
  */
-class UbloxFirmware8 : public UbloxFirmware7Plus<ublox_msgs::NavPVT> {
+class UbloxFirmware8 : public UbloxFirmware7Plus<ublox_msgs::NavPVT, ublox_msgs::NavPVTStamped> {
  public:
   UbloxFirmware8();
 
@@ -1372,10 +1381,14 @@ class HpPosRecProduct: public virtual HpgRefProduct {
    */
   void callbackNavRelPosNed(const ublox_msgs::NavRELPOSNED9 &m);
 
-  sensor_msgs::Imu imu_;
+  ros::Publisher relposned_pub_;
+  ros::Publisher relposned_stamped_pub_;
+  ros::Publisher hpposllh_pub_;
+  ros::Publisher hpposllh_stamped_pub_;
+  // sensor_msgs::Imu imu_;
 
   //! Last relative position (used for diagnostic updater)
-  ublox_msgs::NavRELPOSNED9 last_rel_pos_;
+  // ublox_msgs::NavRELPOSNED9 last_rel_pos_;
 };
 
 /**

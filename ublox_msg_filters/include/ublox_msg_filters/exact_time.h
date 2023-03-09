@@ -84,7 +84,7 @@ struct iTOW
 template<>
 struct iTOW<NullType>
 {
-  static u_int32_t value(const NullType& m) { return 0; }
+  static u_int32_t value(const NullType&) { return 0; }
 };
 
 template<typename M0, typename M1, typename M2 = NullType, typename M3 = NullType, typename M4 = NullType,

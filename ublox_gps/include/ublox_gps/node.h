@@ -676,13 +676,11 @@ class UbloxFirmware7Plus : public ComponentInterface {
 
       const double delta_diff{(utc_time_of_measurement_to_ros_time_deltas_[inlier_time_samples_] - utc_time_of_measurement_to_ros_time_deltas_[0]).toSec()};
 
-      if (std::abs(delta_diff) >= inlier_time_diff_threshold_s_)
-      {
-        ROS_INFO_STREAM("[U-Blox] Restarting U-Blox time alignment after " << inlier_time_samples_ << " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_);
-        inlier_time_samples_ = 0;
-      }
-      else
-        ++inlier_time_samples_;
+      inlier_time_samples_ += std::abs(delta_diff) < inlier_time_diff_threshold_s_
+      ROS_INFO_STREAM_COND(inlier_time_samples_ == 0,
+        "[U-Blox] Restarting U-Blox time alignment after " << inlier_time_samples_ <<
+        " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_
+      );
 
       time_aligned_ = inlier_time_samples_ == stable_time_alignment_count_;
       if (!time_aligned_)

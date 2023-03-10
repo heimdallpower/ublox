@@ -580,7 +580,7 @@ void UbloxNode::initialize() {
   for (int i = 0; i < components_.size(); i++)
     components_[i]->getRosParams();
   // Do this last
-  initializeRosDiagnostics();
+  // initializeRosDiagnostics();
 
   if (configureUblox()) {
     ROS_INFO("U-Blox configured successfully.");

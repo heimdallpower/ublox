@@ -6,7 +6,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp_serialization
   ublox_msgs
   ublox_serialization
-  diagnostic_updater
   rtcm_msgs
   nmea_msgs
 )

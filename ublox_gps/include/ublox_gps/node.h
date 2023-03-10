@@ -642,6 +642,8 @@ class UbloxFirmware7Plus : public ComponentInterface {
       ROS_FATAL_STREAM("[U-Blox] Lacking params required for PVT time alignment. Shutting down.");
       ros::shutdown();
     }
+    else
+      utc_time_of_measurement_to_ros_time_deltas_.resize(stable_time_alignment_count_);
   }
 
   /**
@@ -669,27 +671,31 @@ class UbloxFirmware7Plus : public ComponentInterface {
         inlier_time_samples_ = 0;
         return;
       }
-      if (inlier_time_samples_++ == 0)
-        utc_time_of_measurement_to_ros_time_delta_ = now - utc_time_of_measurement;
-      else
-      {
-        const double delta_diff{((now - utc_time_of_measurement) - utc_time_of_measurement_to_ros_time_delta_).toSec()};
-        const bool ubx_time_is_inlier{std::abs(delta_diff) < inlier_time_diff_threshold_s_};
-        ROS_INFO_STREAM_COND(ubx_time_is_inlier, "[U-Blox] Aligning U-Blox time. " <<
-          inlier_time_samples_ << "/" << stable_time_alignment_count_ << " samples Ok. "
-          "UTC to ROS time delta = " << (now - utc_time_of_measurement).toSec() << " secs."
-        );
-        ROS_INFO_STREAM_COND(!ubx_time_is_inlier ,"[U-Blox] Restarting U-Blox time alignment after " <<
-          inlier_time_samples_ << " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_
-        );
-        inlier_time_samples_ *= ubx_time_is_inlier;
-      }
-      time_aligned_ = inlier_time_samples_ >= stable_time_alignment_count_;
+
+      utc_time_of_measurement_to_ros_time_deltas_[inlier_time_samples_] = now - utc_time_of_measurement;
+
+      const double delta_diff{(utc_time_of_measurement_to_ros_time_deltas_[inlier_time_samples_] - utc_time_of_measurement_to_ros_time_deltas_[0]).toSec()};
+      const bool ubx_time_is_inlier{std::abs(delta_diff) < inlier_time_diff_threshold_s_};
+      ROS_INFO_STREAM_COND(ubx_time_is_inlier, "[U-Blox] Aligning U-Blox time. " <<
+        inlier_time_samples_ << "/" << stable_time_alignment_count_ << " samples Ok. "
+        "UTC to ROS time delta = " << utc_time_of_measurement_to_ros_time_deltas_[inlier_time_samples_].toSec() << " secs."
+      );
+      ROS_INFO_STREAM_COND(!ubx_time_is_inlier ,"[U-Blox] Restarting U-Blox time alignment after " <<
+        inlier_time_samples_ << " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_
+      );
+      inlier_time_samples_ = ubx_time_is_inlier ? (inlier_time_samples_ + 1ul) : 0;
+      time_aligned_ = inlier_time_samples_ == stable_time_alignment_count_;
       if (!time_aligned_)
         return;
 
-      const double delta{utc_time_of_measurement_to_ros_time_delta_.toSec()};
-      ROS_INFO_STREAM("[U-Blox] *** Time alignment successfull. UTC time of measurement " << (delta < 0 ? "leads" : "lags") << " ROS time by = " << std::abs(delta) << " secs. ***");
+      double utc_time_of_measurement_to_ros_time_delta_secs_accumulator{0.0};
+      for (const ros::Duration& utc_time_of_measurement_to_ros_time_deltas: utc_time_of_measurement_to_ros_time_deltas_)
+        utc_time_of_measurement_to_ros_time_delta_secs_accumulator += utc_time_of_measurement_to_ros_time_deltas.toSec();
+      
+      const double utc_time_of_measurement_to_ros_time_delta_secs{utc_time_of_measurement_to_ros_time_delta_secs_accumulator / static_cast<double>(inlier_time_samples_)};
+      utc_time_of_measurement_to_ros_time_delta_ = ros::Duration(utc_time_of_measurement_to_ros_time_delta_secs);
+      
+      ROS_INFO_STREAM("[U-Blox] *** Time alignment successfull. UTC time of measurement " << (utc_time_of_measurement_to_ros_time_delta_secs < 0 ? "leads" : "lags") << " ROS time by = " << std::abs(utc_time_of_measurement_to_ros_time_delta_secs) << " secs. ***");
     }
 
     ublox_msgs::UBXRosTime rostime;
@@ -703,9 +709,10 @@ class UbloxFirmware7Plus : public ComponentInterface {
 
  protected:
   //! Time alignment
+  std::vector<ros::Duration> utc_time_of_measurement_to_ros_time_deltas_;
+  ros::Duration utc_time_of_measurement_to_ros_time_delta_;
   double inlier_time_diff_threshold_s_;
   uint32_t stable_time_alignment_count_;
-  ros::Duration utc_time_of_measurement_to_ros_time_delta_;
   uint32_t inlier_time_samples_;
   bool align_time_;
   bool time_aligned_;

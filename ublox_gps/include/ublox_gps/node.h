@@ -98,7 +98,7 @@ constexpr static uint32_t kNavSvInfoSubscribeRate = 20;
 
 // ROS objects
 //! ROS diagnostic updater
-boost::shared_ptr<diagnostic_updater::Updater> updater;
+// boost::shared_ptr<diagnostic_updater::Updater> updater;
 //! Node Handle for GPS node
 boost::shared_ptr<ros::NodeHandle> nh;
 
@@ -129,102 +129,102 @@ std::vector<uint8_t> rtcm_rates;
 bool config_on_startup_flag_;
 
 
-//! Topic diagnostics for u-blox messages
-struct UbloxTopicDiagnostic {
-  UbloxTopicDiagnostic() {}
+// //! Topic diagnostics for u-blox messages
+// struct UbloxTopicDiagnostic {
+//   UbloxTopicDiagnostic() {}
 
-  // Must not copy this struct (would confuse FrequencyStatusParam pointers)
-  UbloxTopicDiagnostic(const UbloxTopicDiagnostic&) = delete;
+//   // Must not copy this struct (would confuse FrequencyStatusParam pointers)
+//   UbloxTopicDiagnostic(const UbloxTopicDiagnostic&) = delete;
 
-  /**
-   * @brief Add a topic diagnostic to the diagnostic updater for
-   *
-   * @details The minimum and maximum frequency are equal to the nav rate in Hz.
-   * @param name the ROS topic
-   * @param freq_tol the tolerance [%] for the topic frequency
-   * @param freq_window the number of messages to use for diagnostic statistics
-   */
-  UbloxTopicDiagnostic (std::string topic, double freq_tol, int freq_window) {
-    const double target_freq = 1.0 / (meas_rate * 1e-3 * nav_rate); // Hz
-    min_freq = target_freq;
-    max_freq = target_freq;
-    diagnostic_updater::FrequencyStatusParam freq_param(&min_freq, &max_freq,
-                                                        freq_tol, freq_window);
-    diagnostic = new diagnostic_updater::HeaderlessTopicDiagnostic(topic,
-                                                                   *updater,
-                                                                   freq_param);
-  }
+//   /**
+//    * @brief Add a topic diagnostic to the diagnostic updater for
+//    *
+//    * @details The minimum and maximum frequency are equal to the nav rate in Hz.
+//    * @param name the ROS topic
+//    * @param freq_tol the tolerance [%] for the topic frequency
+//    * @param freq_window the number of messages to use for diagnostic statistics
+//    */
+//   UbloxTopicDiagnostic (std::string topic, double freq_tol, int freq_window) {
+//     const double target_freq = 1.0 / (meas_rate * 1e-3 * nav_rate); // Hz
+//     min_freq = target_freq;
+//     max_freq = target_freq;
+//     diagnostic_updater::FrequencyStatusParam freq_param(&min_freq, &max_freq,
+//                                                         freq_tol, freq_window);
+//     diagnostic = new diagnostic_updater::HeaderlessTopicDiagnostic(topic,
+//                                                                    *updater,
+//                                                                    freq_param);
+//   }
 
-  /**
-   * @brief Add a topic diagnostic to the diagnostic updater for
-   *
-   * @details The minimum and maximum frequency are equal to the nav rate in Hz.
-   * @param name the ROS topic
-   * @param freq_min the minimum acceptable frequency for the topic
-   * @param freq_max the maximum acceptable frequency for the topic
-   * @param freq_tol the tolerance [%] for the topic frequency
-   * @param freq_window the number of messages to use for diagnostic statistics
-   */
-  UbloxTopicDiagnostic (std::string topic, double freq_min, double freq_max,
-                   double freq_tol, int freq_window) {
-    min_freq = freq_min;
-    max_freq = freq_max;
-    diagnostic_updater::FrequencyStatusParam freq_param(&min_freq, &max_freq,
-                                                        freq_tol, freq_window);
-    diagnostic = new diagnostic_updater::HeaderlessTopicDiagnostic(topic,
-                                                                   *updater,
-                                                                   freq_param);
-  }
-
-  //! Topic frequency diagnostic updater
-  diagnostic_updater::HeaderlessTopicDiagnostic *diagnostic;
-  //! Minimum allow frequency of topic
-  double min_freq;
-  //! Maximum allow frequency of topic
-  double max_freq;
-};
+//   /**
+//    * @brief Add a topic diagnostic to the diagnostic updater for
+//    *
+//    * @details The minimum and maximum frequency are equal to the nav rate in Hz.
+//    * @param name the ROS topic
+//    * @param freq_min the minimum acceptable frequency for the topic
+//    * @param freq_max the maximum acceptable frequency for the topic
+//    * @param freq_tol the tolerance [%] for the topic frequency
+//    * @param freq_window the number of messages to use for diagnostic statistics
+//    */
+//   UbloxTopicDiagnostic (std::string topic, double freq_min, double freq_max,
+//                    double freq_tol, int freq_window) {
+//     min_freq = freq_min;
+//     max_freq = freq_max;
+//     diagnostic_updater::FrequencyStatusParam freq_param(&min_freq, &max_freq,
+//                                                         freq_tol, freq_window);
+//     diagnostic = new diagnostic_updater::HeaderlessTopicDiagnostic(topic,
+//                                                                    *updater,
+//                                                                    freq_param);
+//   }
+// 
+//   //! Topic frequency diagnostic updater
+//   // diagnostic_updater::HeaderlessTopicDiagnostic *diagnostic;
+//   //! Minimum allow frequency of topic
+//   double min_freq;
+//   //! Maximum allow frequency of topic
+//   double max_freq;
+// };
 
 //! Topic diagnostics for fix / fix_velocity messages
-struct FixDiagnostic {
-  FixDiagnostic() {}
+// struct FixDiagnostic {
+//   FixDiagnostic() {}
 
-  // Must not copy this struct (would confuse FrequencyStatusParam pointers)
-  FixDiagnostic(const FixDiagnostic&) = delete;
+//   // Must not copy this struct (would confuse FrequencyStatusParam pointers)
+//   FixDiagnostic(const FixDiagnostic&) = delete;
 
-  /**
-   * @brief Add a topic diagnostic to the diagnostic updater for fix topics.
-   *
-   * @details The minimum and maximum frequency are equal to the nav rate in Hz.
-   * @param name the ROS topic
-   * @param freq_tol the tolerance [%] for the topic frequency
-   * @param freq_window the number of messages to use for diagnostic statistics
-   * @param stamp_min the minimum allowed time delay
-   */
-  FixDiagnostic (std::string name, double freq_tol, int freq_window,
-                 double stamp_min) {
-    const double target_freq = 1.0 / (meas_rate * 1e-3 * nav_rate); // Hz
-    min_freq = target_freq;
-    max_freq = target_freq;
-    diagnostic_updater::FrequencyStatusParam freq_param(&min_freq, &max_freq,
-                                                        freq_tol, freq_window);
-    double stamp_max = meas_rate * 1e-3 * (1 + freq_tol);
-    diagnostic_updater::TimeStampStatusParam time_param(stamp_min, stamp_max);
-    diagnostic = new diagnostic_updater::TopicDiagnostic(name,
-                                                         *updater,
-                                                         freq_param,
-                                                         time_param);
-  }
+//   /**
+//    * @brief Add a topic diagnostic to the diagnostic updater for fix topics.
+//    *
+//    * @details The minimum and maximum frequency are equal to the nav rate in Hz.
+//    * @param name the ROS topic
+//    * @param freq_tol the tolerance [%] for the topic frequency
+//    * @param freq_window the number of messages to use for diagnostic statistics
+//    * @param stamp_min the minimum allowed time delay
+//    */
+//   FixDiagnostic (std::string name, double freq_tol, int freq_window,
+//                  double stamp_min) {
+//     const double target_freq = 1.0 / (meas_rate * 1e-3 * nav_rate); // Hz
+//     min_freq = target_freq;
+//     max_freq = target_freq;
+//     diagnostic_updater::FrequencyStatusParam freq_param(&min_freq, &max_freq,
+//                                                         freq_tol, freq_window);
+//     double stamp_max = meas_rate * 1e-3 * (1 + freq_tol);
+//     diagnostic_updater::TimeStampStatusParam time_param(stamp_min, stamp_max);
+//     diagnostic = new diagnostic_updater::TopicDiagnostic(name,
+//                                                          *updater,
+//                                                          freq_param,
+//                                                          time_param);
+//   }
 
-  //! Topic frequency diagnostic updater
-  diagnostic_updater::TopicDiagnostic *diagnostic;
-  //! Minimum allow frequency of topic
-  double min_freq;
-  //! Maximum allow frequency of topic
-  double max_freq;
-};
+//   //! Topic frequency diagnostic updater
+//   diagnostic_updater::TopicDiagnostic *diagnostic;
+//   //! Minimum allow frequency of topic
+//   double min_freq;
+//   //! Maximum allow frequency of topic
+//   double max_freq;
+// };
 
-//! fix frequency diagnostic updater
-boost::shared_ptr<FixDiagnostic> freq_diag;
+// //! fix frequency diagnostic updater
+// boost::shared_ptr<FixDiagnostic> freq_diag;
 
 /**
  * @brief Determine dynamic model from human-readable string.
@@ -468,12 +468,12 @@ class ComponentInterface {
    */
   virtual bool configureUblox() = 0;
 
-  /**
-   * @brief Initialize the diagnostics.
-   *
-   * @details Function may be empty.
-   */
-  virtual void initializeRosDiagnostics() = 0;
+  // /**
+  //  * @brief Initialize the diagnostics.
+  //  *
+  //  * @details Function may be empty.
+  //  */
+  // virtual void initializeRosDiagnostics() = 0;
 
   /**
    * @brief Subscribe to u-blox messages and publish to ROS topics.
@@ -681,14 +681,14 @@ class UbloxFirmware : public virtual ComponentInterface {
   /**
    * @brief Add the fix diagnostics to the updater.
    */
-  void initializeRosDiagnostics();
+  // void initializeRosDiagnostics();
 
  protected:
   /**
    * @brief Handle to send fix status to ROS diagnostics.
    */
-  virtual void fixDiagnostic(
-      diagnostic_updater::DiagnosticStatusWrapper& stat) = 0;
+  // virtual void fixDiagnostic(
+  //     diagnostic_updater::DiagnosticStatusWrapper& stat) = 0;
 };
 
 /**
@@ -719,7 +719,7 @@ class UbloxFirmware6 : public UbloxFirmware {
    * @brief Updates fix diagnostic from NavPOSLLH, NavVELNED, and NavSOL
    * messages.
    */
-  void fixDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
+  // void fixDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat);
 
  private:
   /**
@@ -860,8 +860,8 @@ class UbloxFirmware7Plus : public UbloxFirmware {
     // Update diagnostics
     //
     last_nav_pvt_ = m;
-    freq_diag->diagnostic->tick(rostime.header.stamp);
-    updater->update();
+    // freq_diag->diagnostic->tick(rostime.header.stamp);
+    // updater->update();
   }
 
  protected:
@@ -869,66 +869,66 @@ class UbloxFirmware7Plus : public UbloxFirmware {
   /**
    * @brief Update the fix diagnostics from Nav PVT message.
    */
-  void fixDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat) {
-    // check the last message, convert to diagnostic
-    if (last_nav_pvt_.fixType ==
-        ublox_msgs::NavPVT::FIX_TYPE_DEAD_RECKONING_ONLY) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-      stat.message = "Dead reckoning only";
-    } else if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_2D) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-      stat.message = "2D fix";
-    } else if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_3D) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-      stat.message = "3D fix";
-    } else if (last_nav_pvt_.fixType ==
-               ublox_msgs::NavPVT::FIX_TYPE_GNSS_DEAD_RECKONING_COMBINED) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-      stat.message = "GPS and dead reckoning combined";
-    } else if (last_nav_pvt_.fixType ==
-               ublox_msgs::NavPVT::FIX_TYPE_TIME_ONLY) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-      stat.message = "Time only fix";
-    }
+  // void fixDiagnostic(diagnostic_updater::DiagnosticStatusWrapper& stat) {
+  //   // check the last message, convert to diagnostic
+  //   if (last_nav_pvt_.fixType ==
+  //       ublox_msgs::NavPVT::FIX_TYPE_DEAD_RECKONING_ONLY) {
+  //     stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
+  //     stat.message = "Dead reckoning only";
+  //   } else if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_2D) {
+  //     stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
+  //     stat.message = "2D fix";
+  //   } else if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_3D) {
+  //     stat.level = diagnostic_msgs::DiagnosticStatus::OK;
+  //     stat.message = "3D fix";
+  //   } else if (last_nav_pvt_.fixType ==
+  //              ublox_msgs::NavPVT::FIX_TYPE_GNSS_DEAD_RECKONING_COMBINED) {
+  //     stat.level = diagnostic_msgs::DiagnosticStatus::OK;
+  //     stat.message = "GPS and dead reckoning combined";
+  //   } else if (last_nav_pvt_.fixType ==
+  //              ublox_msgs::NavPVT::FIX_TYPE_TIME_ONLY) {
+  //     stat.level = diagnostic_msgs::DiagnosticStatus::OK;
+  //     stat.message = "Time only fix";
+  //   }
     
-    // Check whether differential GNSS available
-    if (last_nav_pvt_.flags & ublox_msgs::NavPVT::FLAGS_DIFF_SOLN) {
-      stat.message += ", DGNSS";
-    } 
-    // If DGNSS, then update the differential solution status
-    if (last_nav_pvt_.flags & ublox_msgs::NavPVT::CARRIER_PHASE_FLOAT) {
-      stat.message += ", FLOAT FIX";
-    } else if (last_nav_pvt_.flags & ublox_msgs::NavPVT::CARRIER_PHASE_FIXED) {
-      stat.message += ", RTK FIX";
-    }
+  //   // Check whether differential GNSS available
+  //   if (last_nav_pvt_.flags & ublox_msgs::NavPVT::FLAGS_DIFF_SOLN) {
+  //     stat.message += ", DGNSS";
+  //   } 
+  //   // If DGNSS, then update the differential solution status
+  //   if (last_nav_pvt_.flags & ublox_msgs::NavPVT::CARRIER_PHASE_FLOAT) {
+  //     stat.message += ", FLOAT FIX";
+  //   } else if (last_nav_pvt_.flags & ublox_msgs::NavPVT::CARRIER_PHASE_FIXED) {
+  //     stat.message += ", RTK FIX";
+  //   }
 
-    // If fix not ok (w/in DOP & Accuracy Masks), raise the diagnostic level
-    if (!(last_nav_pvt_.flags & ublox_msgs::NavPVT::FLAGS_GNSS_FIX_OK)) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-      stat.message += ", fix not ok";
-    }
-    // Raise diagnostic level to error if no fix
-    if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_NO_FIX) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::ERROR;
-      stat.message = "No fix";
-    }
+  //   // If fix not ok (w/in DOP & Accuracy Masks), raise the diagnostic level
+  //   if (!(last_nav_pvt_.flags & ublox_msgs::NavPVT::FLAGS_GNSS_FIX_OK)) {
+  //     stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
+  //     stat.message += ", fix not ok";
+  //   }
+  //   // Raise diagnostic level to error if no fix
+  //   if (last_nav_pvt_.fixType == ublox_msgs::NavPVT::FIX_TYPE_NO_FIX) {
+  //     stat.level = diagnostic_msgs::DiagnosticStatus::ERROR;
+  //     stat.message = "No fix";
+  //   }
 
-    // append last fix position
-    stat.add("iTOW [ms]", last_nav_pvt_.iTOW);
-    std::ostringstream gnss_coor;
-    gnss_coor << std::fixed << std::setprecision(7);
-    gnss_coor << (last_nav_pvt_.lat * 1e-7);
-    stat.add("Latitude [deg]", gnss_coor.str());
-    gnss_coor.str("");
-    gnss_coor.clear();
-    gnss_coor << (last_nav_pvt_.lon * 1e-7);
-    stat.add("Longitude [deg]", gnss_coor.str());
-    stat.add("Altitude [m]", last_nav_pvt_.height * 1e-3);
-    stat.add("Height above MSL [m]", last_nav_pvt_.hMSL * 1e-3);
-    stat.add("Horizontal Accuracy [m]", last_nav_pvt_.hAcc * 1e-3);
-    stat.add("Vertical Accuracy [m]", last_nav_pvt_.vAcc * 1e-3);
-    stat.add("# SVs used", (int)last_nav_pvt_.numSV);
-  }
+  //   // append last fix position
+  //   stat.add("iTOW [ms]", last_nav_pvt_.iTOW);
+  //   std::ostringstream gnss_coor;
+  //   gnss_coor << std::fixed << std::setprecision(7);
+  //   gnss_coor << (last_nav_pvt_.lat * 1e-7);
+  //   stat.add("Latitude [deg]", gnss_coor.str());
+  //   gnss_coor.str("");
+  //   gnss_coor.clear();
+  //   gnss_coor << (last_nav_pvt_.lon * 1e-7);
+  //   stat.add("Longitude [deg]", gnss_coor.str());
+  //   stat.add("Altitude [m]", last_nav_pvt_.height * 1e-3);
+  //   stat.add("Height above MSL [m]", last_nav_pvt_.hMSL * 1e-3);
+  //   stat.add("Horizontal Accuracy [m]", last_nav_pvt_.hAcc * 1e-3);
+  //   stat.add("Vertical Accuracy [m]", last_nav_pvt_.vAcc * 1e-3);
+  //   stat.add("# SVs used", (int)last_nav_pvt_.numSV);
+  // }
 
   //! Time alignment
   double inlier_time_diff_threshold_s_;
@@ -1081,7 +1081,7 @@ class RawDataProduct: public virtual ComponentInterface {
 
  private:
   //! Topic diagnostic updaters
-  std::vector<boost::shared_ptr<UbloxTopicDiagnostic> > freq_diagnostics_;
+  // std::vector<boost::shared_ptr<UbloxTopicDiagnostic> > freq_diagnostics_;
 };
 
 /**
@@ -1343,7 +1343,7 @@ class HpgRovProduct: public virtual ComponentInterface {
   uint8_t dgnss_mode_;
 
   //! The RTCM topic frequency diagnostic updater
-  UbloxTopicDiagnostic freq_rtcm_;
+  // UbloxTopicDiagnostic freq_rtcm_;
 };
 
 class HpPosRecProduct: public virtual HpgRefProduct {

@@ -626,10 +626,12 @@ class UbloxFirmware7Plus : public ComponentInterface {
  public:
   UbloxFirmware7Plus():
   inlier_time_samples_{0},
-  time_aligned_{false},
   pvt_publisher_{nh->advertise<NavPVT>("navpvt", kROSQueueSize)},
   rostime_publisher_{nh->advertise<ublox_msgs::UBXRosTime>("rostime", kROSQueueSize)}
   {
+    rostime_.ublox_utc_to_ros_aligned_time_offset_valid = false;
+    rostime_.ublox_utc_to_ros_aligned_time_offset       = ros::Duration(0.0);
+
     int stable_alignment_count;
     const bool all_params_supplied{
       nh->getParam("rostime_alignment/enabled", align_time_) &&
@@ -652,27 +654,25 @@ class UbloxFirmware7Plus : public ComponentInterface {
    */
   void callbackNavPvt(const NavPVT& m)
   {
-    const ros::Time now{ros::Time::now()};
+    rostime_.header.stamp = ros::Time::now();
 
     const bool subzero_nano{m.nano < 0};
-    const ros::Time utc_meas_time{
-      static_cast<uint32_t>(toUtcSeconds(m) - subzero_nano),
-      static_cast<uint32_t>(m.nano + (1000000000l * subzero_nano))
-    };
+    rostime_.ublox_utc_time.sec   = static_cast<uint32_t>(toUtcSeconds(m) - subzero_nano);
+    rostime_.ublox_utc_time.nsec  = static_cast<uint32_t>(m.nano + (1000000000l * subzero_nano));
 
     static constexpr uint8_t VALID_TIME_MASK{NavPVT::VALID_DATE | NavPVT::VALID_TIME | NavPVT::VALID_FULLY_RESOLVED};
-    const bool pvt_time_usable{((m.valid & VALID_TIME_MASK) == VALID_TIME_MASK) && (m.flags2 & NavPVT::FLAGS2_CONFIRMED_AVAILABLE)};
+    rostime_.ublox_utc_time_valid = ((m.valid & VALID_TIME_MASK) == VALID_TIME_MASK) && (m.flags2 & NavPVT::FLAGS2_CONFIRMED_AVAILABLE);
 
-    if (!time_aligned_ && align_time_)
+    if (!rostime_.ublox_utc_to_ros_aligned_time_offset_valid && align_time_)
     {
-      if (!pvt_time_usable)
+      if (!rostime_.ublox_utc_time_valid)
       {
         ROS_WARN_STREAM_THROTTLE(1.0, "[U-Blox] Awaiting valid PVT time before performing time alignment.");
         inlier_time_samples_ = 0;
         return;
       }
 
-      utc_meas2ros_time_deltas_[inlier_time_samples_] = now - utc_meas_time;
+      utc_meas2ros_time_deltas_[inlier_time_samples_] = rostime_.header.stamp - rostime_.ublox_utc_time;
 
       const double delta_diff{(
         utc_meas2ros_time_deltas_[inlier_time_samples_] - utc_meas2ros_time_deltas_[0]
@@ -684,8 +684,8 @@ class UbloxFirmware7Plus : public ComponentInterface {
         " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_
       );
 
-      time_aligned_ = inlier_time_samples_ == stable_time_alignment_count_;
-      if (!time_aligned_)
+      rostime_.ublox_utc_to_ros_aligned_time_offset_valid = inlier_time_samples_ == stable_time_alignment_count_;
+      if (!rostime_.ublox_utc_to_ros_aligned_time_offset_valid)
         return;
 
       double accumulator{0.0};
@@ -695,18 +695,15 @@ class UbloxFirmware7Plus : public ComponentInterface {
       const double utc_meas2ros_time_delta_secs{
         accumulator / static_cast<double>(stable_time_alignment_count_)
       };
-      utc_meas2ros_time_delta_ = ros::Duration(utc_meas2ros_time_delta_secs);
+      rostime_.ublox_utc_to_ros_aligned_time_offset = ros::Duration(utc_meas2ros_time_delta_secs);
       ROS_INFO_STREAM(
         "[U-Blox] ***** Time alignment successfull. UTC time of measurement " << (utc_meas2ros_time_delta_secs < 0 ? "leads" : "lags") <<
         " ROS time by " << std::abs(utc_meas2ros_time_delta_secs) << " secs. *****"
       );
     }
 
-    ublox_msgs::UBXRosTime rostime;
-    rostime.iTOW                    = m.iTOW;
-    rostime.is_time_of_measurement  = pvt_time_usable && align_time_;
-    rostime.header.stamp            = rostime.is_time_of_measurement ? (utc_meas_time + utc_meas2ros_time_delta_) : now;
-    rostime_publisher_.publish(rostime);
+    rostime_.iTOW = m.iTOW;
+    rostime_publisher_.publish(rostime_);
 
     pvt_publisher_.publish(m);
   }
@@ -714,13 +711,12 @@ class UbloxFirmware7Plus : public ComponentInterface {
  protected:
   //! Time alignment
   std::vector<ros::Duration> utc_meas2ros_time_deltas_;
-  ros::Duration utc_meas2ros_time_delta_;
   double inlier_time_diff_threshold_s_;
   uint32_t stable_time_alignment_count_;
   uint32_t inlier_time_samples_;
   bool align_time_;
-  bool time_aligned_;
   //! Time publisher
+  ublox_msgs::UBXRosTime rostime_;
   ros::Publisher rostime_publisher_;
   //! NavPvt publisher
   ros::Publisher pvt_publisher_;

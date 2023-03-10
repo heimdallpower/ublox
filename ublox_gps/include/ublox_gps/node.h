@@ -821,7 +821,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
     {
       if (!pvt_time_usable)
       {
-        ROS_WARN_STREAM("[U-Blox] Waiting for valid PVT time before performing time alignment.");
+        ROS_WARN_STREAM_THROTTLE(1.0, "[U-Blox] Awaiting valid PVT time before performing time alignment.");
         inlier_time_samples_ = 0;
         return;
       }
@@ -843,9 +843,9 @@ class UbloxFirmware7Plus : public UbloxFirmware {
 
     const bool is_time_of_measurement{pvt_time_usable && align_time_};
     ublox_msgs::UBXRosTime ros_time;
+    ros_time.header.stamp = is_time_of_measurement ? (utc_time_of_measurement + utc_time_of_measurement_to_ros_time_diff_) : now;
     ros_time.is_time_of_measurement = is_time_of_measurement;
     ros_time.iTOW = m.iTOW;
-    ros_time.stamp = is_time_of_measurement ? (utc_time_of_measurement + utc_time_of_measurement_to_ros_time_diff_) : now;
     ros_time_publisher_.publish(ros_time);
 
     pvt_publisher_.publish(m);

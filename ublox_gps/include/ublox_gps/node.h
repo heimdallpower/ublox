@@ -836,7 +836,9 @@ class UbloxFirmware7Plus : public UbloxFirmware {
           "UTC to ROS time delta = " << (now - utc_time_of_measurement).toSec() << " "
           "(base delta = " << utc_time_of_measurement_to_ros_time_delta_.toSec() << ", diff = " << delta_diff << ")"
         );
-        ROS_INFO_STREAM_COND(!ubx_time_is_inlier ,"[U-Blox] Restarting U-Blox time alignment after " << inlier_time_samples_ << " samples. ");
+        ROS_INFO_STREAM_COND(!ubx_time_is_inlier ,"[U-Blox] Restarting U-Blox time alignment after " <<
+          inlier_time_samples_ << " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_
+        );
         inlier_time_samples_ *= ubx_time_is_inlier;
       }
       time_aligned_ = inlier_time_samples_ >= stable_time_alignment_count_;

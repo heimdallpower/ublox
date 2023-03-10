@@ -783,9 +783,9 @@ class UbloxFirmware7Plus : public UbloxFirmware {
   {
     int stable_alignment_count;
     const bool all_params_supplied{
-      nh->getParam("align_ubx_time", align_time_) &&
-      nh->getParam("inlier_time_diff_threshold", inlier_time_diff_threshold_) &&
-      getRosUint("stable_alignment_count", stable_time_alignment_count_)
+      nh->getParam("ros_time_alignment/enabled", align_time_) &&
+      nh->getParam("ros_time_alignment/inlier_time_diff_threshold_sec", inlier_time_diff_threshold_s_) &&
+      getRosUint("ros_time_alignment/stable_alignment_count", stable_time_alignment_count_)
     };
     
     if (!all_params_supplied)
@@ -828,7 +828,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
         utc_time_of_measurement_to_ros_time_diff_ = now - utc_time_of_measurement;
       else
       {
-        const bool ubx_time_is_inlier{std::abs(((now - utc_time_of_measurement) - utc_time_of_measurement_to_ros_time_diff_).toSec()) < inlier_time_diff_threshold_};
+        const bool ubx_time_is_inlier{std::abs(((now - utc_time_of_measurement) - utc_time_of_measurement_to_ros_time_diff_).toSec()) < inlier_time_diff_threshold_s_};
         ROS_INFO_STREAM_COND(ubx_time_is_inlier, "[U-Blox] Aligning U-Blox time. " << inlier_time_samples_ << "/" << stable_time_alignment_count_ << " samples Ok.");
         ROS_INFO_STREAM_COND(!ubx_time_is_inlier ,"[U-Blox] Restarting U-Blox time alignment after " << inlier_time_samples_ << " samples.");
         inlier_time_samples_ *= ubx_time_is_inlier;
@@ -1003,7 +1003,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
   }
 
   //! Time alignment
-  double inlier_time_diff_threshold_;
+  double inlier_time_diff_threshold_s_;
   uint32_t stable_time_alignment_count_;
   ros::Duration utc_time_of_measurement_to_ros_time_diff_;
   uint32_t inlier_time_samples_;

@@ -776,6 +776,25 @@ class UbloxFirmware6 : public UbloxFirmware {
 template<typename NavPVT>
 class UbloxFirmware7Plus : public UbloxFirmware {
  public:
+  UbloxFirmware7Plus():
+  inlier_time_samples_{0},
+  pvt_publisher_{nh->advertise<NavPVT>("navpvt", kROSQueueSize)},
+  ros_time_publisher_{nh->advertise<ublox_msgs::UBXRosTime>("rostime", kROSQueueSize)}
+  {
+    int stable_alignment_count;
+    const bool all_params_supplied{
+      nh->getParam("align_ubx_time", align_time_) &&
+      nh->getParam("inlier_time_diff_threshold", inlier_time_diff_threshold_) &&
+      getRosUint("stable_alignment_count", stable_time_alignment_count_)
+    };
+    
+    if (!all_params_supplied)
+    {
+      ROS_FATAL_STREAM("[U-Blox] Lacking params required for PVT time alignment. Shutting down.");
+      ros::shutdown();
+    }
+  }
+
   /**
    * @brief Publish a NavSatFix and TwistWithCovarianceStamped messages.
    *
@@ -784,13 +803,50 @@ class UbloxFirmware7Plus : public UbloxFirmware {
    * is published. This function also calls the ROS diagnostics updater.
    * @param m the message to publish
    */
-  void callbackNavPvt(const NavPVT& m) {
-    if(enabled["nav_pvt"]) {
-      // NavPVT publisher
-      static ros::Publisher publisher = nh->advertise<NavPVT>("navpvt",
-                                                              kROSQueueSize);
-      publisher.publish(m);
+  void callbackNavPvt(const NavPVT& m)
+  {
+    const ros::Time now{ros::Time::now()};
+
+    const bool subzero_nano{m.nano < 0};
+    const ros::Time utc_time_of_measurement{
+      static_cast<uint32_t>(toUtcSeconds(m) - subzero_nano),
+      static_cast<uint32_t>(m.nano + (1000000000ul * subzero_nano))
+    };
+
+    static constexpr uint8_t VALID_TIME_MASK{NavPVT::VALID_DATE | NavPVT::VALID_TIME | NavPVT::VALID_FULLY_RESOLVED};
+    const bool pvt_time_usable{((m.valid & VALID_TIME_MASK) == VALID_TIME_MASK) && (m.flags2 & NavPVT::FLAGS2_CONFIRMED_AVAILABLE)};
+
+    if (align_time_)
+    {
+      if (!pvt_time_usable)
+      {
+        ROS_WARN_STREAM("[U-Blox] Waiting for valid PVT time before performing time alignment.");
+        inlier_time_samples_ = 0;
+        return;
+      }
+      if (inlier_time_samples_++ == 0)
+        utc_time_of_measurement_to_ros_time_diff_ = now - utc_time_of_measurement;
+      else
+      {
+        const bool ubx_time_is_inlier{std::abs(((now - utc_time_of_measurement) - utc_time_of_measurement_to_ros_time_diff_).toSec()) < inlier_time_diff_threshold_};
+        ROS_INFO_STREAM_COND(ubx_time_is_inlier, "[U-Blox] Aligning U-Blox time. " << inlier_time_samples_ << "/" << stable_time_alignment_count_ << " samples Ok.");
+        ROS_INFO_STREAM_COND(!ubx_time_is_inlier ,"[U-Blox] Restarting U-Blox time alignment after " << inlier_time_samples_ << " samples.");
+        inlier_time_samples_ *= ubx_time_is_inlier;
+      }
+      align_time_ = inlier_time_samples_ < stable_time_alignment_count_;
+      if (align_time_)
+        return;
+
+      ROS_INFO_STREAM("[U-Blox] Time alignment successfull. UTC time of measurement to ROS time diff = " << utc_time_of_measurement_to_ros_time_diff_.toSec() << " seconds.");
     }
+
+    ublox_msgs::UBXRosTime ros_time;
+    ros_time.is_time_of_measurement = pvt_time_usable;
+    ros_time.iTOW = m.iTOW;
+    ros_time.stamp = pvt_time_usable ? (utc_time_of_measurement + utc_time_of_measurement_to_ros_time_diff_) : now;
+    ros_time_publisher_.publish(ros_time);
+
+    pvt_publisher_.publish(m);
 
     //
     // NavSatFix message
@@ -946,6 +1002,16 @@ class UbloxFirmware7Plus : public UbloxFirmware {
     stat.add("# SVs used", (int)last_nav_pvt_.numSV);
   }
 
+  //! Time alignment
+  double inlier_time_diff_threshold_;
+  uint32_t stable_time_alignment_count_;
+  ros::Duration utc_time_of_measurement_to_ros_time_diff_;
+  uint32_t inlier_time_samples_;
+  bool align_time_;
+  //! Time publisher
+  ros::Publisher ros_time_publisher_;
+  //! NavPvt publisher
+  ros::Publisher pvt_publisher_;
   //! The last received NavPVT message
   NavPVT last_nav_pvt_;
   // Whether or not to enable the given GNSS

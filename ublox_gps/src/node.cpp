@@ -1352,8 +1352,6 @@ void AdrUdrProduct::callbackEsfMEAS(const ublox_msgs::EsfMEAS &m) {
       imu_pub.publish(imu_);
     }
   }
-  
-  // updater->force_update();
 }
 //
 // u-blox High Precision GNSS Reference Station
@@ -1474,13 +1472,9 @@ void HpgRefProduct::callbackNavSvIn(ublox_msgs::NavSVIN m) {
     publisher.publish(m);
   }
 
-  last_nav_svin_ = m;
-
   if(!m.active && m.valid && mode_ == SURVEY_IN) {
     setTimeMode();
   }
-
-  // updater->update();
 }
 
 bool HpgRefProduct::setTimeMode() {

@@ -974,9 +974,6 @@ class HpgRefProduct: public virtual ComponentInterface {
    */
   bool setTimeMode();
 
-  //! The last received Nav SVIN message
-  ublox_msgs::NavSVIN last_nav_svin_;
-
   //! TMODE3 to set, such as disabled, survey-in, fixed
   uint8_t tmode3_;
 

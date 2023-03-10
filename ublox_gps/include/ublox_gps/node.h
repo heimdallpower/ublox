@@ -694,10 +694,9 @@ class UbloxFirmware7Plus : public ComponentInterface {
       
       const double utc_time_of_measurement_to_ros_time_delta_secs{utc_time_of_measurement_to_ros_time_delta_secs_accumulator / static_cast<double>(stable_time_alignment_count_)};
       utc_time_of_measurement_to_ros_time_delta_ = ros::Duration(utc_time_of_measurement_to_ros_time_delta_secs);
-      
       ROS_INFO_STREAM(
-        "[U-Blox] *** Time alignment successfull. UTC time of measurement " << (utc_time_of_measurement_to_ros_time_delta_secs < 0 ? "leads" : "lags") <<
-        " ROS time by = " << std::abs(utc_time_of_measurement_to_ros_time_delta_secs) << " secs. ***"
+        "[U-Blox] ***** Time alignment successfull. UTC time of measurement " << (utc_time_of_measurement_to_ros_time_delta_secs < 0 ? "leads" : "lags") <<
+        " ROS time by " << std::abs(utc_time_of_measurement_to_ros_time_delta_secs) << " secs. *****"
       );
     }
 

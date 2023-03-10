@@ -675,7 +675,6 @@ class UbloxFirmware7Plus : public ComponentInterface {
       utc_time_of_measurement_to_ros_time_deltas_[inlier_time_samples_] = now - utc_time_of_measurement;
 
       const double delta_diff{(utc_time_of_measurement_to_ros_time_deltas_[inlier_time_samples_] - utc_time_of_measurement_to_ros_time_deltas_[0]).toSec()};
-      const bool ubx_time_is_inlier{};
 
       if (std::abs(delta_diff) >= inlier_time_diff_threshold_s_)
       {

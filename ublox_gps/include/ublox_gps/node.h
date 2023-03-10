@@ -780,13 +780,13 @@ class UbloxFirmware7Plus : public UbloxFirmware {
   inlier_time_samples_{0},
   time_aligned_{false},
   pvt_publisher_{nh->advertise<NavPVT>("navpvt", kROSQueueSize)},
-  ros_time_publisher_{nh->advertise<ublox_msgs::UBXRosTime>("rostime", kROSQueueSize)}
+  rostime_publisher_{nh->advertise<ublox_msgs::UBXRosTime>("rostime", kROSQueueSize)}
   {
     int stable_alignment_count;
     const bool all_params_supplied{
-      nh->getParam("ros_time_alignment/enabled", align_time_) &&
-      nh->getParam("ros_time_alignment/inlier_time_diff_threshold_sec", inlier_time_diff_threshold_s_) &&
-      getRosUint("ros_time_alignment/stable_alignment_count", stable_time_alignment_count_)
+      nh->getParam("rostime_alignment/enabled", align_time_) &&
+      nh->getParam("rostime_alignment/inlier_time_diff_threshold_sec", inlier_time_diff_threshold_s_) &&
+      getRosUint("rostime_alignment/stable_alignment_count", stable_time_alignment_count_)
     };
     
     if (!all_params_supplied)
@@ -842,11 +842,11 @@ class UbloxFirmware7Plus : public UbloxFirmware {
     }
 
     const bool is_time_of_measurement{pvt_time_usable && align_time_};
-    ublox_msgs::UBXRosTime ros_time;
-    ros_time.header.stamp = is_time_of_measurement ? (utc_time_of_measurement + utc_time_of_measurement_to_ros_time_diff_) : now;
-    ros_time.is_time_of_measurement = is_time_of_measurement;
-    ros_time.iTOW = m.iTOW;
-    ros_time_publisher_.publish(ros_time);
+    ublox_msgs::UBXRosTime rostime;
+    rostime.header.stamp = is_time_of_measurement ? (utc_time_of_measurement + utc_time_of_measurement_to_ros_time_diff_) : now;
+    rostime.is_time_of_measurement = is_time_of_measurement;
+    rostime.iTOW = m.iTOW;
+    rostime_publisher_.publish(rostime);
 
     pvt_publisher_.publish(m);
 
@@ -1012,7 +1012,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
   bool align_time_;
   bool time_aligned_;
   //! Time publisher
-  ros::Publisher ros_time_publisher_;
+  ros::Publisher rostime_publisher_;
   //! NavPvt publisher
   ros::Publisher pvt_publisher_;
   //! The last received NavPVT message

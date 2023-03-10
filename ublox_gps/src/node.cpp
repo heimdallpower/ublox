@@ -349,21 +349,6 @@ void UbloxNode::subscribe() {
     components_[i]->subscribe();
 }
 
-void UbloxNode::initializeRosDiagnostics() {
-  // if (!nh->hasParam("diagnostic_period"))
-  //   nh->setParam("diagnostic_period", kDiagnosticPeriod);
-
-  // updater.reset(new diagnostic_updater::Updater());
-  // updater->setHardwareID("ublox");
-
-  // configure diagnostic updater for frequency
-  // freq_diag.reset(new FixDiagnostic(std::string("fix"), kFixFreqTol,
-  //                           kFixFreqWindow, kTimeStampStatusMin));
-  // for(int i = 0; i < components_.size(); i++)
-  //   components_[i]->initializeRosDiagnostics();
-}
-
-
 void UbloxNode::processMonVer() {
   ublox_msgs::MonVER monVer;
   if (!gps.poll(monVer))
@@ -576,11 +561,8 @@ void UbloxNode::initialize() {
     if(nh->param("raw_data", false))
       components_.push_back(ComponentPtr(new RawDataProduct));
   }
-  // Must set firmware & hardware params before initializing diagnostics
   for (int i = 0; i < components_.size(); i++)
     components_[i]->getRosParams();
-  // Do this last
-  initializeRosDiagnostics();
 
   if (configureUblox()) {
     ROS_INFO("U-Blox configured successfully.");
@@ -613,14 +595,6 @@ void UbloxNode::shutdown() {
     ROS_INFO("Closed connection to %s.", device_.c_str());
   }
 }
-
-//
-// U-Blox Firmware (all versions)
-//
-// void UbloxFirmware::initializeRosDiagnostics() {
-//   updater->add("fix", this, &UbloxFirmware::fixDiagnostic);
-//   updater->force_update();
-// }
 
 //
 // U-Blox Firmware Version 6
@@ -709,48 +683,6 @@ void UbloxFirmware6::subscribe() {
         publish<ublox_msgs::MonHW6>, _1, "monhw"), kSubscribeRate);
 }
 
-// void UbloxFirmware6::fixDiagnostic(
-//     diagnostic_updater::DiagnosticStatusWrapper& stat) {
-//   // Set the diagnostic level based on the fix status
-//   if (last_nav_sol_.gpsFix == ublox_msgs::NavSOL::GPS_DEAD_RECKONING_ONLY) {
-//     stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-//     stat.message = "Dead reckoning only";
-//   } else if (last_nav_sol_.gpsFix == ublox_msgs::NavSOL::GPS_2D_FIX) {
-//     stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-//     stat.message = "2D fix";
-//   } else if (last_nav_sol_.gpsFix == ublox_msgs::NavSOL::GPS_3D_FIX) {
-//     stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-//     stat.message = "3D fix";
-//   } else if (last_nav_sol_.gpsFix ==
-//              ublox_msgs::NavSOL::GPS_GPS_DEAD_RECKONING_COMBINED) {
-//     stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-//     stat.message = "GPS and dead reckoning combined";
-//   } else if (last_nav_sol_.gpsFix == ublox_msgs::NavSOL::GPS_TIME_ONLY_FIX) {
-//     stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-//     stat.message = "Time fix only";
-//   }
-//   // If fix is not ok (within DOP & Accuracy Masks), raise the diagnostic level
-//   if (!(last_nav_sol_.flags & ublox_msgs::NavSOL::FLAGS_GPS_FIX_OK)) {
-//     stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-//     stat.message += ", fix not ok";
-//   }
-//   // Raise diagnostic level to error if no fix
-//   if (last_nav_sol_.gpsFix == ublox_msgs::NavSOL::GPS_NO_FIX) {
-//     stat.level = diagnostic_msgs::DiagnosticStatus::ERROR;
-//     stat.message = "No fix";
-//   }
-
-//   // Add last fix position
-//   stat.add("iTOW [ms]", last_nav_pos_.iTOW);
-//   stat.add("Latitude [deg]", last_nav_pos_.lat * 1e-7);
-//   stat.add("Longitude [deg]", last_nav_pos_.lon * 1e-7);
-//   stat.add("Altitude [m]", last_nav_pos_.height * 1e-3);
-//   stat.add("Height above MSL [m]", last_nav_pos_.hMSL * 1e-3);
-//   stat.add("Horizontal Accuracy [m]", last_nav_pos_.hAcc * 1e-3);
-//   stat.add("Vertical Accuracy [m]", last_nav_pos_.vAcc * 1e-3);
-//   stat.add("# SVs used", (int)last_nav_sol_.numSV);
-// }
-
 void UbloxFirmware6::callbackNavPosLlh(const ublox_msgs::NavPOSLLH& m) {
   if(enabled["nav_posllh"]) {
     static ros::Publisher publisher =
@@ -788,10 +720,6 @@ void UbloxFirmware6::callbackNavPosLlh(const ublox_msgs::NavPOSLLH& m) {
 
   fix_.status.service = fix_.status.SERVICE_GPS;
   fixPublisher.publish(fix_);
-  last_nav_pos_ = m;
-  //  update diagnostics
-  // freq_diag->diagnostic->tick(fix_.header.stamp);
-  // updater->update();
 }
 
 void UbloxFirmware6::callbackNavVelNed(const ublox_msgs::NavVELNED& m) {
@@ -1292,21 +1220,6 @@ void RawDataProduct::subscribe() {
         publish<ublox_msgs::RxmALM>, _1, "rxmalm"), kSubscribeRate);
 }
 
-void RawDataProduct::initializeRosDiagnostics() {
-  // if (enabled["rxm_raw"])
-  //   freq_diagnostics_.push_back(boost::shared_ptr<UbloxTopicDiagnostic>(
-  //     new UbloxTopicDiagnostic("rxmraw", kRtcmFreqTol, kRtcmFreqWindow)));
-  // if (enabled["rxm_sfrb"])
-  //   freq_diagnostics_.push_back(boost::shared_ptr<UbloxTopicDiagnostic>(
-  //     new UbloxTopicDiagnostic("rxmsfrb", kRtcmFreqTol, kRtcmFreqWindow)));
-  // if (enabled["rxm_eph"])
-  //   freq_diagnostics_.push_back(boost::shared_ptr<UbloxTopicDiagnostic>(
-  //     new UbloxTopicDiagnostic("rxmeph", kRtcmFreqTol, kRtcmFreqWindow)));
-  // if (enabled["rxm_alm"])
-  //   freq_diagnostics_.push_back(boost::shared_ptr<UbloxTopicDiagnostic>(
-  //     new UbloxTopicDiagnostic("rxmalm", kRtcmFreqTol, kRtcmFreqWindow)));
-}
-
 AdrUdrProduct::AdrUdrProduct(float protocol_version)
     : protocol_version_(protocol_version)
 {}
@@ -1587,53 +1500,6 @@ bool HpgRefProduct::setTimeMode() {
   return true;
 }
 
-void HpgRefProduct::initializeRosDiagnostics() {
-  // updater->add("TMODE3", this, &HpgRefProduct::tmode3Diagnostics);
-  // updater->force_update();
-}
-
-void HpgRefProduct::tmode3Diagnostics(
-    diagnostic_updater::DiagnosticStatusWrapper& stat) {
-  if (mode_ == INIT) {
-    stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-    stat.message = "Not configured";
-  } else if (mode_ == DISABLED){
-    stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-    stat.message = "Disabled";
-  } else if (mode_ == SURVEY_IN) {
-    if (!last_nav_svin_.active && !last_nav_svin_.valid) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::ERROR;
-      stat.message = "Survey-In inactive and invalid";
-    } else if (last_nav_svin_.active && !last_nav_svin_.valid) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-      stat.message = "Survey-In active but invalid";
-    } else if (!last_nav_svin_.active && last_nav_svin_.valid) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-      stat.message = "Survey-In complete";
-    } else if (last_nav_svin_.active && last_nav_svin_.valid) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-      stat.message = "Survey-In active and valid";
-    }
-
-    stat.add("iTOW [ms]", last_nav_svin_.iTOW);
-    stat.add("Duration [s]", last_nav_svin_.dur);
-    stat.add("# observations", last_nav_svin_.obs);
-    stat.add("Mean X [m]", last_nav_svin_.meanX * 1e-2);
-    stat.add("Mean Y [m]", last_nav_svin_.meanY * 1e-2);
-    stat.add("Mean Z [m]", last_nav_svin_.meanZ * 1e-2);
-    stat.add("Mean X HP [m]", last_nav_svin_.meanXHP * 1e-4);
-    stat.add("Mean Y HP [m]", last_nav_svin_.meanYHP * 1e-4);
-    stat.add("Mean Z HP [m]", last_nav_svin_.meanZHP * 1e-4);
-    stat.add("Mean Accuracy [m]", last_nav_svin_.meanAcc * 1e-4);
-  } else if(mode_ == FIXED) {
-    stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-    stat.message = "Fixed Position";
-  } else if(mode_ == TIME) {
-    stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-    stat.message = "Time";
-  }
-}
-
 //
 // U-Blox High Precision GNSS Rover
 //
@@ -1653,52 +1519,9 @@ bool HpgRovProduct::configureUblox() {
 void HpgRovProduct::subscribe() {
   // Whether to publish Nav Relative Position NED
   nh->param("publish/nav/relposned", enabled["nav_relposned"], enabled["nav"]);
-  // Subscribe to Nav Relative Position NED messages (also updates diagnostics)
+  // Subscribe to Nav Relative Position NED messages
   gps.subscribe<ublox_msgs::NavRELPOSNED>(boost::bind(
      &HpgRovProduct::callbackNavRelPosNed, this, _1), kSubscribeRate);
-}
-
-void HpgRovProduct::initializeRosDiagnostics() {
-  // freq_rtcm_ = UbloxTopicDiagnostic(std::string("rxmrtcm"),
-  //                              kRtcmFreqMin, kRtcmFreqMax,
-  //                              kRtcmFreqTol, kRtcmFreqWindow);
-  // updater->add("Carrier Phase Solution", this,
-  //               &HpgRovProduct::carrierPhaseDiagnostics);
-  // updater->force_update();
-}
-
-void HpgRovProduct::carrierPhaseDiagnostics(
-    diagnostic_updater::DiagnosticStatusWrapper& stat) {
-  uint32_t carr_soln = last_rel_pos_.flags & last_rel_pos_.FLAGS_CARR_SOLN_MASK;
-  stat.add("iTOW", last_rel_pos_.iTOW);
-  if (carr_soln & last_rel_pos_.FLAGS_CARR_SOLN_NONE ||
-      !(last_rel_pos_.flags & last_rel_pos_.FLAGS_DIFF_SOLN &&
-        last_rel_pos_.flags & last_rel_pos_.FLAGS_REL_POS_VALID)) {
-    stat.level = diagnostic_msgs::DiagnosticStatus::ERROR;
-    stat.message = "None";
-  } else {
-    if (carr_soln & last_rel_pos_.FLAGS_CARR_SOLN_FLOAT) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::WARN;
-      stat.message = "Float";
-    } else if (carr_soln & last_rel_pos_.FLAGS_CARR_SOLN_FIXED) {
-      stat.level = diagnostic_msgs::DiagnosticStatus::OK;
-      stat.message = "Fixed";
-    }
-    stat.add("Ref Station ID", last_rel_pos_.refStationId);
-
-    double rel_pos_n = (last_rel_pos_.relPosN
-                       + (last_rel_pos_.relPosHPN * 1e-2)) * 1e-2;
-    double rel_pos_e = (last_rel_pos_.relPosE
-                       + (last_rel_pos_.relPosHPE * 1e-2)) * 1e-2;
-    double rel_pos_d = (last_rel_pos_.relPosD
-                       + (last_rel_pos_.relPosHPD * 1e-2)) * 1e-2;
-    stat.add("Relative Position N [m]", rel_pos_n);
-    stat.add("Relative Accuracy N [m]", last_rel_pos_.accN * 1e-4);
-    stat.add("Relative Position E [m]", rel_pos_e);
-    stat.add("Relative Accuracy E [m]", last_rel_pos_.accE * 1e-4);
-    stat.add("Relative Position D [m]", rel_pos_d);
-    stat.add("Relative Accuracy D [m]", last_rel_pos_.accD * 1e-4);
-  }
 }
 
 void HpgRovProduct::callbackNavRelPosNed(const ublox_msgs::NavRELPOSNED &m) {
@@ -1707,9 +1530,6 @@ void HpgRovProduct::callbackNavRelPosNed(const ublox_msgs::NavRELPOSNED &m) {
         nh->advertise<ublox_msgs::NavRELPOSNED>("navrelposned", kROSQueueSize);
     publisher.publish(m);
   }
-
-  last_rel_pos_ = m;
-  // updater->update();
 }
 
 //
@@ -1735,7 +1555,7 @@ void HpPosRecProduct::subscribe() {
 
   // Whether to publish Nav Relative Position NED
   nh->param("publish/nav/relposned", enabled["nav_relposned"], enabled["nav"]);
-  // Subscribe to Nav Relative Position NED messages (also updates diagnostics)
+  // Subscribe to Nav Relative Position NED messages
   gps.subscribe<ublox_msgs::NavRELPOSNED9>(boost::bind(
      &HpPosRecProduct::callbackNavRelPosNed, this, _1), kSubscribeRate);
 
@@ -1818,9 +1638,6 @@ void HpPosRecProduct::callbackNavRelPosNed(const ublox_msgs::NavRELPOSNED9 &m) {
 
     imu_pub.publish(imu_);
   }
-
-  last_rel_pos_ = m;
-  // updater->update();
 }
 
 //
@@ -1890,12 +1707,6 @@ void TimProduct::callbackTimTM2(const ublox_msgs::TimTM2 &m) {
     publisher.publish(m);
     time_ref_pub.publish(t_ref_);
   }
-  
-  // updater->force_update();
-}
-
-void TimProduct::initializeRosDiagnostics() {
-  // updater->force_update();
 }
 
 void rtcmCallback(const rtcm_msgs::Message::ConstPtr &msg) {

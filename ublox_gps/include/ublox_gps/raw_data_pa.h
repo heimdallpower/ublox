@@ -50,7 +50,7 @@
 /**
  * @namespace ublox_node
  * This namespace is for the ROS u-blox node and handles anything regarding
- * ROS parameters, message passing, diagnostics, etc.
+ * ROS parameters, message passing, etc.
  */
 namespace ublox_node {
 

@@ -833,8 +833,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
         const bool ubx_time_is_inlier{std::abs(delta_diff) < inlier_time_diff_threshold_s_};
         ROS_INFO_STREAM_COND(ubx_time_is_inlier, "[U-Blox] Aligning U-Blox time. " <<
           inlier_time_samples_ << "/" << stable_time_alignment_count_ << " samples Ok. "
-          "UTC to ROS time delta = " << (now - utc_time_of_measurement).toSec() << " "
-          "(base delta = " << utc_time_of_measurement_to_ros_time_delta_.toSec() << ", diff = " << delta_diff << ")"
+          "UTC to ROS time delta = " << (now - utc_time_of_measurement).toSec() << " secs."
         );
         ROS_INFO_STREAM_COND(!ubx_time_is_inlier ,"[U-Blox] Restarting U-Blox time alignment after " <<
           inlier_time_samples_ << " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_
@@ -846,7 +845,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
         return;
 
       const double delta{utc_time_of_measurement_to_ros_time_delta_.toSec()};
-      ROS_INFO_STREAM("[U-Blox] *** Time alignment successfull. UTC time of measurement " << (delta < 0 ? "leads" : "lags") << " ROS time by = " << std::abs(delta) << " seconds. ***");
+      ROS_INFO_STREAM("[U-Blox] *** Time alignment successfull. UTC time of measurement " << (delta < 0 ? "leads" : "lags") << " ROS time by = " << std::abs(delta) << " secs. ***");
     }
 
     ublox_msgs::UBXRosTime rostime;
@@ -857,92 +856,92 @@ class UbloxFirmware7Plus : public UbloxFirmware {
 
     pvt_publisher_.publish(m);
 
-    //
-    // NavSatFix message
-    //
-    static ros::Publisher fixPublisher =
-        nh->advertise<sensor_msgs::NavSatFix>("fix", kROSQueueSize);
+    // //
+    // // NavSatFix message
+    // //
+    // static ros::Publisher fixPublisher =
+    //     nh->advertise<sensor_msgs::NavSatFix>("fix", kROSQueueSize);
 
-    sensor_msgs::NavSatFix fix;
-    fix.header.frame_id = frame_id;
-    // set the timestamp
-    uint8_t valid_time = m.VALID_DATE | m.VALID_TIME | m.VALID_FULLY_RESOLVED;
-    if (((m.valid & valid_time) == valid_time) &&
-        (m.flags2 & m.FLAGS2_CONFIRMED_AVAILABLE)) {
-      // Use NavPVT timestamp since it is valid
-      // The time in nanoseconds from the NavPVT message can be between -1e9 and 1e9
-      //  The ros time uses only unsigned values, so a negative nano seconds must be
-      //  converted to a positive value
-      if (m.nano < 0) {
-        fix.header.stamp.sec = toUtcSeconds(m) - 1;
-        fix.header.stamp.nsec = (uint32_t)(m.nano + 1e9);
-      }
-      else {
-        fix.header.stamp.sec = toUtcSeconds(m);
-        fix.header.stamp.nsec = (uint32_t)(m.nano);
-      }
-    } else {
-      // Use ROS time since NavPVT timestamp is not valid
-      fix.header.stamp = ros::Time::now();
-    }
-    // Set the LLA
-    fix.latitude = m.lat * 1e-7; // to deg
-    fix.longitude = m.lon * 1e-7; // to deg
-    fix.altitude = m.height * 1e-3; // to [m]
-    // Set the Fix status
-    bool fixOk = m.flags & m.FLAGS_GNSS_FIX_OK;
-    if (fixOk && m.fixType >= m.FIX_TYPE_2D) {
-      fix.status.status = fix.status.STATUS_FIX;
-      if(m.flags & m.CARRIER_PHASE_FIXED)
-        fix.status.status = fix.status.STATUS_GBAS_FIX;
-    }
-    else {
-      fix.status.status = fix.status.STATUS_NO_FIX;
-    }
-    // Set the service based on GNSS configuration
-    fix.status.service = fix_status_service;
+    // sensor_msgs::NavSatFix fix;
+    // fix.header.frame_id = frame_id;
+    // // set the timestamp
+    // uint8_t valid_time = m.VALID_DATE | m.VALID_TIME | m.VALID_FULLY_RESOLVED;
+    // if (((m.valid & valid_time) == valid_time) &&
+    //     (m.flags2 & m.FLAGS2_CONFIRMED_AVAILABLE)) {
+    //   // Use NavPVT timestamp since it is valid
+    //   // The time in nanoseconds from the NavPVT message can be between -1e9 and 1e9
+    //   //  The ros time uses only unsigned values, so a negative nano seconds must be
+    //   //  converted to a positive value
+    //   if (m.nano < 0) {
+    //     fix.header.stamp.sec = toUtcSeconds(m) - 1;
+    //     fix.header.stamp.nsec = (uint32_t)(m.nano + 1e9);
+    //   }
+    //   else {
+    //     fix.header.stamp.sec = toUtcSeconds(m);
+    //     fix.header.stamp.nsec = (uint32_t)(m.nano);
+    //   }
+    // } else {
+    //   // Use ROS time since NavPVT timestamp is not valid
+    //   fix.header.stamp = ros::Time::now();
+    // }
+    // // Set the LLA
+    // fix.latitude = m.lat * 1e-7; // to deg
+    // fix.longitude = m.lon * 1e-7; // to deg
+    // fix.altitude = m.height * 1e-3; // to [m]
+    // // Set the Fix status
+    // bool fixOk = m.flags & m.FLAGS_GNSS_FIX_OK;
+    // if (fixOk && m.fixType >= m.FIX_TYPE_2D) {
+    //   fix.status.status = fix.status.STATUS_FIX;
+    //   if(m.flags & m.CARRIER_PHASE_FIXED)
+    //     fix.status.status = fix.status.STATUS_GBAS_FIX;
+    // }
+    // else {
+    //   fix.status.status = fix.status.STATUS_NO_FIX;
+    // }
+    // // Set the service based on GNSS configuration
+    // fix.status.service = fix_status_service;
 
-    // Set the position covariance
-    const double varH = pow(m.hAcc / 1000.0, 2); // to [m^2]
-    const double varV = pow(m.vAcc / 1000.0, 2); // to [m^2]
-    fix.position_covariance[0] = varH;
-    fix.position_covariance[4] = varH;
-    fix.position_covariance[8] = varV;
-    fix.position_covariance_type =
-        sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
+    // // Set the position covariance
+    // const double varH = pow(m.hAcc / 1000.0, 2); // to [m^2]
+    // const double varV = pow(m.vAcc / 1000.0, 2); // to [m^2]
+    // fix.position_covariance[0] = varH;
+    // fix.position_covariance[4] = varH;
+    // fix.position_covariance[8] = varV;
+    // fix.position_covariance_type =
+    //     sensor_msgs::NavSatFix::COVARIANCE_TYPE_DIAGONAL_KNOWN;
 
-    fixPublisher.publish(fix);
+    // fixPublisher.publish(fix);
 
-    //
-    // Twist message
-    //
-    static ros::Publisher velocityPublisher =
-        nh->advertise<geometry_msgs::TwistWithCovarianceStamped>("fix_velocity",
-                                                                 kROSQueueSize);
-    geometry_msgs::TwistWithCovarianceStamped velocity;
-    velocity.header.stamp = fix.header.stamp;
-    velocity.header.frame_id = frame_id;
+    // //
+    // // Twist message
+    // //
+    // static ros::Publisher velocityPublisher =
+    //     nh->advertise<geometry_msgs::TwistWithCovarianceStamped>("fix_velocity",
+    //                                                              kROSQueueSize);
+    // geometry_msgs::TwistWithCovarianceStamped velocity;
+    // velocity.header.stamp = fix.header.stamp;
+    // velocity.header.frame_id = frame_id;
 
-    // convert to XYZ linear velocity [m/s] in ENU
-    velocity.twist.twist.linear.x = m.velE * 1e-3;
-    velocity.twist.twist.linear.y = m.velN * 1e-3;
-    velocity.twist.twist.linear.z = -m.velD * 1e-3;
-    // Set the covariance
-    const double covSpeed = pow(m.sAcc * 1e-3, 2);
-    const int cols = 6;
-    velocity.twist.covariance[cols * 0 + 0] = covSpeed;
-    velocity.twist.covariance[cols * 1 + 1] = covSpeed;
-    velocity.twist.covariance[cols * 2 + 2] = covSpeed;
-    velocity.twist.covariance[cols * 3 + 3] = -1;  //  angular rate unsupported
+    // // convert to XYZ linear velocity [m/s] in ENU
+    // velocity.twist.twist.linear.x = m.velE * 1e-3;
+    // velocity.twist.twist.linear.y = m.velN * 1e-3;
+    // velocity.twist.twist.linear.z = -m.velD * 1e-3;
+    // // Set the covariance
+    // const double covSpeed = pow(m.sAcc * 1e-3, 2);
+    // const int cols = 6;
+    // velocity.twist.covariance[cols * 0 + 0] = covSpeed;
+    // velocity.twist.covariance[cols * 1 + 1] = covSpeed;
+    // velocity.twist.covariance[cols * 2 + 2] = covSpeed;
+    // velocity.twist.covariance[cols * 3 + 3] = -1;  //  angular rate unsupported
 
-    velocityPublisher.publish(velocity);
+    // velocityPublisher.publish(velocity);
 
-    //
-    // Update diagnostics
-    //
-    last_nav_pvt_ = m;
-    freq_diag->diagnostic->tick(fix.header.stamp);
-    updater->update();
+    // //
+    // // Update diagnostics
+    // //
+    // last_nav_pvt_ = m;
+    // freq_diag->diagnostic->tick(fix.header.stamp);
+    // updater->update();
   }
 
  protected:

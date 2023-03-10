@@ -643,7 +643,7 @@ class UbloxFirmware7Plus : public ComponentInterface {
       ros::shutdown();
     }
     else
-      utc_time_of_measurement_to_ros_time_deltas_.resize(stable_time_alignment_count_);
+      utc_meas2ros_time_deltas_.resize(stable_time_alignment_count_);
   }
 
   /**
@@ -655,7 +655,7 @@ class UbloxFirmware7Plus : public ComponentInterface {
     const ros::Time now{ros::Time::now()};
 
     const bool subzero_nano{m.nano < 0};
-    const ros::Time utc_time_of_measurement{
+    const ros::Time utc_meas_time{
       static_cast<uint32_t>(toUtcSeconds(m) - subzero_nano),
       static_cast<uint32_t>(m.nano + (1000000000l * subzero_nano))
     };
@@ -672,9 +672,11 @@ class UbloxFirmware7Plus : public ComponentInterface {
         return;
       }
 
-      utc_time_of_measurement_to_ros_time_deltas_[inlier_time_samples_] = now - utc_time_of_measurement;
+      utc_meas2ros_time_deltas_[inlier_time_samples_] = now - utc_meas_time;
 
-      const double delta_diff{(utc_time_of_measurement_to_ros_time_deltas_[inlier_time_samples_] - utc_time_of_measurement_to_ros_time_deltas_[0]).toSec()};
+      const double delta_diff{(
+        utc_meas2ros_time_deltas_[inlier_time_samples_] - utc_meas2ros_time_deltas_[0]
+      ).toSec()};
 
       inlier_time_samples_ += std::abs(delta_diff) < inlier_time_diff_threshold_s_;
       ROS_INFO_STREAM_COND(inlier_time_samples_ == 0,
@@ -686,22 +688,24 @@ class UbloxFirmware7Plus : public ComponentInterface {
       if (!time_aligned_)
         return;
 
-      double utc_time_of_measurement_to_ros_time_delta_secs_accumulator{0.0};
-      for (const ros::Duration& utc_time_of_measurement_to_ros_time_deltas: utc_time_of_measurement_to_ros_time_deltas_)
-        utc_time_of_measurement_to_ros_time_delta_secs_accumulator += utc_time_of_measurement_to_ros_time_deltas.toSec();
+      double accumulator{0.0};
+      for (const ros::Duration& delta: utc_meas2ros_time_deltas_)
+        accumulator += delta.toSec();
       
-      const double utc_time_of_measurement_to_ros_time_delta_secs{utc_time_of_measurement_to_ros_time_delta_secs_accumulator / static_cast<double>(stable_time_alignment_count_)};
-      utc_time_of_measurement_to_ros_time_delta_ = ros::Duration(utc_time_of_measurement_to_ros_time_delta_secs);
+      const double utc_meas2ros_time_delta_secs{
+        accumulator / static_cast<double>(stable_time_alignment_count_)
+      };
+      utc_meas2ros_time_delta_ = ros::Duration(utc_meas2ros_time_delta_secs);
       ROS_INFO_STREAM(
-        "[U-Blox] ***** Time alignment successfull. UTC time of measurement " << (utc_time_of_measurement_to_ros_time_delta_secs < 0 ? "leads" : "lags") <<
-        " ROS time by " << std::abs(utc_time_of_measurement_to_ros_time_delta_secs) << " secs. *****"
+        "[U-Blox] ***** Time alignment successfull. UTC time of measurement " << (utc_meas2ros_time_delta_secs < 0 ? "leads" : "lags") <<
+        " ROS time by " << std::abs(utc_meas2ros_time_delta_secs) << " secs. *****"
       );
     }
 
     ublox_msgs::UBXRosTime rostime;
     rostime.iTOW                    = m.iTOW;
     rostime.is_time_of_measurement  = pvt_time_usable && align_time_;
-    rostime.header.stamp            = rostime.is_time_of_measurement ? (utc_time_of_measurement + utc_time_of_measurement_to_ros_time_delta_) : now;
+    rostime.header.stamp            = rostime.is_time_of_measurement ? (utc_meas_time + utc_meas2ros_time_delta_) : now;
     rostime_publisher_.publish(rostime);
 
     pvt_publisher_.publish(m);
@@ -709,8 +713,8 @@ class UbloxFirmware7Plus : public ComponentInterface {
 
  protected:
   //! Time alignment
-  std::vector<ros::Duration> utc_time_of_measurement_to_ros_time_deltas_;
-  ros::Duration utc_time_of_measurement_to_ros_time_delta_;
+  std::vector<ros::Duration> utc_meas2ros_time_deltas_;
+  ros::Duration utc_meas2ros_time_delta_;
   double inlier_time_diff_threshold_s_;
   uint32_t stable_time_alignment_count_;
   uint32_t inlier_time_samples_;

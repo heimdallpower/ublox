@@ -778,6 +778,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
  public:
   UbloxFirmware7Plus():
   inlier_time_samples_{0},
+  time_aligned_{false},
   pvt_publisher_{nh->advertise<NavPVT>("navpvt", kROSQueueSize)},
   ros_time_publisher_{nh->advertise<ublox_msgs::UBXRosTime>("rostime", kROSQueueSize)}
   {
@@ -816,7 +817,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
     static constexpr uint8_t VALID_TIME_MASK{NavPVT::VALID_DATE | NavPVT::VALID_TIME | NavPVT::VALID_FULLY_RESOLVED};
     const bool pvt_time_usable{((m.valid & VALID_TIME_MASK) == VALID_TIME_MASK) && (m.flags2 & NavPVT::FLAGS2_CONFIRMED_AVAILABLE)};
 
-    if (align_time_)
+    if (!time_aligned_ && align_time_)
     {
       if (!pvt_time_usable)
       {
@@ -833,17 +834,18 @@ class UbloxFirmware7Plus : public UbloxFirmware {
         ROS_INFO_STREAM_COND(!ubx_time_is_inlier ,"[U-Blox] Restarting U-Blox time alignment after " << inlier_time_samples_ << " samples.");
         inlier_time_samples_ *= ubx_time_is_inlier;
       }
-      align_time_ = inlier_time_samples_ < stable_time_alignment_count_;
-      if (align_time_)
+      time_aligned_ = inlier_time_samples_ >= stable_time_alignment_count_;
+      if (!time_aligned_)
         return;
 
       ROS_INFO_STREAM("[U-Blox] Time alignment successfull. UTC time of measurement to ROS time diff = " << utc_time_of_measurement_to_ros_time_diff_.toSec() << " seconds.");
     }
 
+    const bool is_time_of_measurement{pvt_time_usable && align_time_};
     ublox_msgs::UBXRosTime ros_time;
-    ros_time.is_time_of_measurement = pvt_time_usable;
+    ros_time.is_time_of_measurement = is_time_of_measurement;
     ros_time.iTOW = m.iTOW;
-    ros_time.stamp = pvt_time_usable ? (utc_time_of_measurement + utc_time_of_measurement_to_ros_time_diff_) : now;
+    ros_time.stamp = is_time_of_measurement ? (utc_time_of_measurement + utc_time_of_measurement_to_ros_time_diff_) : now;
     ros_time_publisher_.publish(ros_time);
 
     pvt_publisher_.publish(m);
@@ -1008,6 +1010,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
   ros::Duration utc_time_of_measurement_to_ros_time_diff_;
   uint32_t inlier_time_samples_;
   bool align_time_;
+  bool time_aligned_;
   //! Time publisher
   ros::Publisher ros_time_publisher_;
   //! NavPvt publisher

@@ -677,8 +677,7 @@ class UbloxFirmware7Plus : public ComponentInterface {
       const double delta_diff{(utc_time_of_measurement_to_ros_time_deltas_[inlier_time_samples_] - utc_time_of_measurement_to_ros_time_deltas_[0]).toSec()};
       const bool ubx_time_is_inlier{std::abs(delta_diff) < inlier_time_diff_threshold_s_};
       ROS_INFO_STREAM_COND(ubx_time_is_inlier, "[U-Blox] Aligning U-Blox time. " <<
-        inlier_time_samples_ << "/" << stable_time_alignment_count_ << " samples Ok. "
-        "UTC to ROS time delta = " << utc_time_of_measurement_to_ros_time_deltas_[inlier_time_samples_].toSec() << " secs."
+        inlier_time_samples_ << "/" << stable_time_alignment_count_ << " samples Ok."
       );
       ROS_INFO_STREAM_COND(!ubx_time_is_inlier ,"[U-Blox] Restarting U-Blox time alignment after " <<
         inlier_time_samples_ << " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_
@@ -695,7 +694,10 @@ class UbloxFirmware7Plus : public ComponentInterface {
       const double utc_time_of_measurement_to_ros_time_delta_secs{utc_time_of_measurement_to_ros_time_delta_secs_accumulator / static_cast<double>(inlier_time_samples_)};
       utc_time_of_measurement_to_ros_time_delta_ = ros::Duration(utc_time_of_measurement_to_ros_time_delta_secs);
       
-      ROS_INFO_STREAM("[U-Blox] *** Time alignment successfull. UTC time of measurement " << (utc_time_of_measurement_to_ros_time_delta_secs < 0 ? "leads" : "lags") << " ROS time by = " << std::abs(utc_time_of_measurement_to_ros_time_delta_secs) << " secs. ***");
+      ROS_INFO_STREAM(
+        "[U-Blox] *** Time alignment successfull. UTC time of measurement " << (utc_time_of_measurement_to_ros_time_delta_secs < 0 ? "leads" : "lags") <<
+        " ROS time by = " << std::abs(utc_time_of_measurement_to_ros_time_delta_secs) << " secs. ***"
+      );
     }
 
     ublox_msgs::UBXRosTime rostime;

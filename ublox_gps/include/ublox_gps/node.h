@@ -855,6 +855,13 @@ class UbloxFirmware7Plus : public UbloxFirmware {
     rostime_publisher_.publish(rostime);
 
     pvt_publisher_.publish(m);
+
+    //
+    // Update diagnostics
+    //
+    last_nav_pvt_ = m;
+    freq_diag->diagnostic->tick(rostime.header.stamp);
+    updater->update();
   }
 
  protected:

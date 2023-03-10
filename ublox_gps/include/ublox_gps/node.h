@@ -840,8 +840,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
         return;
 
       const double delta{utc_time_of_measurement_to_ros_time_delta_.toSec()};
-      ROS_INFO_STREAM_COND(delta < 0 , "[U-Blox] *** Time alignment successfull. UTC time of measurement leads ROS time by = " << std::abs(delta) << " seconds. ***");
-      ROS_INFO_STREAM_COND(delta >= 0, "[U-Blox] *** Time alignment successfull. UTC time of measurement lags ROS time by = " << std::abs(delta) << " seconds. ***");
+      ROS_INFO_STREAM("[U-Blox] *** Time alignment successfull. UTC time of measurement " (delta < 0 ? "leads" : "lags") << " ROS time by = " << std::abs(delta) << " seconds. ***");
     }
 
     ublox_msgs::UBXRosTime rostime;

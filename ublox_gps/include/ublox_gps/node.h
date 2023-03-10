@@ -838,7 +838,7 @@ class UbloxFirmware7Plus : public UbloxFirmware {
       if (!time_aligned_)
         return;
 
-      ROS_INFO_STREAM("[U-Blox] Time alignment successfull. UTC time of measurement to ROS time diff = " << utc_time_of_measurement_to_ros_time_diff_.toSec() << " seconds.");
+      ROS_INFO_STREAM("[U-Blox] *** Time alignment successfull. UTC time of measurement to ROS time diff = " << utc_time_of_measurement_to_ros_time_diff_.toSec() << " seconds. ***");
     }
 
     const bool is_time_of_measurement{pvt_time_usable && align_time_};

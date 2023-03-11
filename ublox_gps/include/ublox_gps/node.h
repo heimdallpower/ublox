@@ -678,11 +678,16 @@ class UbloxFirmware7Plus : public ComponentInterface {
         utc_meas2ros_time_deltas_[inlier_time_samples_] - utc_meas2ros_time_deltas_[0]
       ).toSec()};
 
-      inlier_time_samples_ += std::abs(delta_diff) < inlier_time_diff_threshold_s_;
-      ROS_INFO_STREAM_COND(inlier_time_samples_ == 0,
-        "[U-Blox] Restarting U-Blox time alignment after " << inlier_time_samples_ <<
-        " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_
-      );
+      if (std::abs(delta_diff) < inlier_time_diff_threshold_s_)
+        ++inlier_time_samples_;
+      else
+      {
+        ROS_INFO_STREAM(
+          "[U-Blox] Restarting U-Blox time alignment after " << inlier_time_samples_ <<
+          " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_
+        );
+        inlier_time_samples_ = 0;
+      }
 
       rostime_.ublox_utc_to_ros_aligned_time_offset_valid = inlier_time_samples_ == stable_time_alignment_count_;
       if (!rostime_.ublox_utc_to_ros_aligned_time_offset_valid)
@@ -697,8 +702,8 @@ class UbloxFirmware7Plus : public ComponentInterface {
       };
       rostime_.ublox_utc_to_ros_aligned_time_offset = ros::Duration(utc_meas2ros_time_delta_secs);
       ROS_INFO_STREAM(
-        "[U-Blox] ***** Time alignment successfull. UTC time of measurement " << (utc_meas2ros_time_delta_secs < 0 ? "leads" : "lags") <<
-        " ROS time by " << std::abs(utc_meas2ros_time_delta_secs) << " secs. *****"
+        "[U-Blox] ***** Time alignment successfull. System ROS time of reception " << (utc_meas2ros_time_delta_secs < 0 ? "leads" : "lags") <<
+        " UBX-UTC time of measurement by " << std::abs(utc_meas2ros_time_delta_secs) << " secs. *****"
       );
     }
 

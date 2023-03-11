@@ -112,6 +112,8 @@
 
 #include <ublox_msgs/TimTM2.h>
 
+#include <ublox_msgs/UBXRosTime.h>
+
 namespace ublox_msgs {
 
 namespace Class {

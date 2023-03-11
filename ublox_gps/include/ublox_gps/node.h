@@ -632,11 +632,11 @@ class UbloxFirmware7Plus : public ComponentInterface {
     rostime_.ublox_utc_to_ros_aligned_time_offset_valid = false;
     rostime_.ublox_utc_to_ros_aligned_time_offset       = ros::Duration(0.0);
 
-    int stable_alignment_count;
+    uint32_t stable_alignment_count;
     const bool all_params_supplied{
       nh->getParam("rostime_alignment/enabled", align_time_) &&
       nh->getParam("rostime_alignment/inlier_time_diff_threshold_sec", inlier_time_diff_threshold_s_) &&
-      getRosUint("rostime_alignment/stable_alignment_count", stable_time_alignment_count_)
+      getRosUint("rostime_alignment/stable_alignment_count", stable_alignment_count)
     };
     
     if (!all_params_supplied)
@@ -645,7 +645,7 @@ class UbloxFirmware7Plus : public ComponentInterface {
       ros::shutdown();
     }
     else
-      utc_meas2ros_time_deltas_.resize(stable_time_alignment_count_);
+      utc_meas2ros_time_deltas_.resize(stable_alignment_count);
   }
 
   /**
@@ -689,7 +689,7 @@ class UbloxFirmware7Plus : public ComponentInterface {
         inlier_time_samples_ = 0;
       }
 
-      rostime_.ublox_utc_to_ros_aligned_time_offset_valid = inlier_time_samples_ == stable_time_alignment_count_;
+      rostime_.ublox_utc_to_ros_aligned_time_offset_valid = inlier_time_samples_ == utc_meas2ros_time_deltas_.size();
       if (!rostime_.ublox_utc_to_ros_aligned_time_offset_valid)
         return;
 
@@ -698,7 +698,7 @@ class UbloxFirmware7Plus : public ComponentInterface {
         accumulator += delta.toSec();
       
       const double utc_meas2ros_time_delta_secs{
-        accumulator / static_cast<double>(stable_time_alignment_count_)
+        accumulator / static_cast<double>(utc_meas2ros_time_deltas_.size())
       };
       rostime_.ublox_utc_to_ros_aligned_time_offset = ros::Duration(utc_meas2ros_time_delta_secs);
       ROS_INFO_STREAM(
@@ -717,7 +717,6 @@ class UbloxFirmware7Plus : public ComponentInterface {
   //! Time alignment
   std::vector<ros::Duration> utc_meas2ros_time_deltas_;
   double inlier_time_diff_threshold_s_;
-  uint32_t stable_time_alignment_count_;
   uint32_t inlier_time_samples_;
   bool align_time_;
   //! Time publisher

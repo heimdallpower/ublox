@@ -289,6 +289,11 @@ void UbloxNode::subscribe() {
     gps.subscribe<ublox_msgs::NavCLOCK>(boost::bind(
         publish<ublox_msgs::NavCLOCK>, _1, "navclock"), kSubscribeRate);
 
+  nh->param("publish/nav/timegps", enabled["nav_timegps"], enabled["nav"]);
+  if (enabled["nav_timegps"])
+    gps.subscribe<ublox_msgs::NavTIMEGPS>(boost::bind(
+        publish<ublox_msgs::NavTIMEGPS>, _1, "navtimegps"), kSubscribeRate);
+
   nh->param("publish/nmea", enabled["nmea"], false);
   if (enabled["nmea"])
     gps.subscribe_nmea(boost::bind(publish_nmea, _1, "nmea"));
@@ -932,8 +937,7 @@ void UbloxFirmware7::subscribe() {
   // Subscribe to Nav PVT (always does so since fix information is published
   // from this)
   gps.subscribe<ublox_msgs::NavPVT7>(boost::bind(
-        &UbloxFirmware7Plus::callbackNavPvt, this, _1),
-        kSubscribeRate);
+    publish<ublox_msgs::NavPVT7>, _1, "navpvt"), kSubscribeRate);
 
   // Subscribe to Nav SVINFO
   nh->param("publish/nav/svinfo", enabled["nav_svinfo"], enabled["nav"]);
@@ -1163,11 +1167,12 @@ bool UbloxFirmware8::configureUblox() {
 }
 
 void UbloxFirmware8::subscribe() {
-  // Whether to publish Nav PVT messages
-  nh->param("publish/nav/pvt", enabled["nav_pvt"], enabled["nav"]);
   // Subscribe to Nav PVT
-  gps.subscribe<ublox_msgs::NavPVT>(
-    boost::bind(&UbloxFirmware7Plus::callbackNavPvt, this, _1), kSubscribeRate);
+  nh->param("publish/nav/pvt", enabled["nav_pvt"], enabled["nav"]);
+  if (enabled["nav_pvt"])
+    gps.subscribe<ublox_msgs::NavPVT>(boost::bind(
+      publish<ublox_msgs::NavPVT>, _1, "navpvt"), kSubscribeRate
+    );
 
   // Subscribe to Nav SAT messages
   nh->param("publish/nav/sat", enabled["nav_sat"], enabled["nav"]);
@@ -1658,10 +1663,21 @@ void TimProduct::subscribe() {
   // Subscribe to TIM-TM2 messages (Time mark messages)
   nh->param("publish/tim/tm2", enabled["tim_tm2"], enabled["tim"]);
 
-  gps.subscribe<ublox_msgs::TimTM2>(boost::bind(
-    &TimProduct::callbackTimTM2, this, _1), kSubscribeRate);
-	
-  ROS_INFO("Subscribed to TIM-TM2 messages on topic tim/tm2");
+  if (enabled["tim_tm2"])
+  {
+    gps.subscribe<ublox_msgs::TimTM2>(boost::bind(
+      &TimProduct::callbackTimTM2, this, _1), kSubscribeRate);
+    
+    ROS_INFO("Subscribed to TIM-TM2 messages on topic tim/tm2");
+  }
+
+  nh->param("publish/tim/tp", enabled["tim_tp"], enabled["tim"]);
+  if (enabled["tim_tp"])
+  {
+    gps.subscribe<ublox_msgs::TimTP>(boost::bind(
+      publish<ublox_msgs::TimTP>, _1, "timtp"), kSubscribeRate);
+    ROS_INFO("Subscribed to TIM-TP messages on topic tim/tp");
+  }
 	
   // Subscribe to SFRBX messages
   nh->param("publish/rxm/sfrb", enabled["rxm_sfrb"], enabled["rxm"]);
@@ -1669,38 +1685,36 @@ void TimProduct::subscribe() {
     gps.subscribe<ublox_msgs::RxmSFRBX>(boost::bind(
         publish<ublox_msgs::RxmSFRBX>, _1, "rxmsfrb"), kSubscribeRate);
 	
-   // Subscribe to RawX messages
-   nh->param("publish/rxm/raw", enabled["rxm_raw"], enabled["rxm"]);
-   if (enabled["rxm_raw"])
-     gps.subscribe<ublox_msgs::RxmRAWX>(boost::bind(
-        publish<ublox_msgs::RxmRAWX>, _1, "rxmraw"), kSubscribeRate);
+  // Subscribe to RawX messages
+  nh->param("publish/rxm/raw", enabled["rxm_raw"], enabled["rxm"]);
+  if (enabled["rxm_raw"])
+    gps.subscribe<ublox_msgs::RxmRAWX>(boost::bind(
+      publish<ublox_msgs::RxmRAWX>, _1, "rxmraw"), kSubscribeRate);
 }
 
 void TimProduct::callbackTimTM2(const ublox_msgs::TimTM2 &m) {
   
-  if (enabled["tim_tm2"]) {
-    static ros::Publisher publisher =
-    	nh->advertise<ublox_msgs::TimTM2>("timtm2", kROSQueueSize);
-    static ros::Publisher time_ref_pub =
-	nh->advertise<sensor_msgs::TimeReference>("interrupt_time", kROSQueueSize);
-    
-    // create time ref message and put in the data
-    t_ref_.header.seq = m.risingEdgeCount;
-    t_ref_.header.stamp = ros::Time::now();
-    t_ref_.header.frame_id = frame_id;
-
-    t_ref_.time_ref = ros::Time((m.wnR * 604800 + m.towMsR / 1000), (m.towMsR % 1000) * 1000000 + m.towSubMsR); 
-    
-    std::ostringstream src;
-    src << "TIM" << int(m.ch); 
-    t_ref_.source = src.str();
-
-    t_ref_.header.stamp = ros::Time::now(); // create a new timestamp
-    t_ref_.header.frame_id = frame_id;
+  static ros::Publisher publisher =
+    nh->advertise<ublox_msgs::TimTM2>("timtm2", kROSQueueSize);
+  static ros::Publisher time_ref_pub =
+    nh->advertise<sensor_msgs::TimeReference>("interrupt_time", kROSQueueSize);
   
-    publisher.publish(m);
-    time_ref_pub.publish(t_ref_);
-  }
+  // create time ref message and put in the data
+  t_ref_.header.seq = m.risingEdgeCount;
+  t_ref_.header.stamp = ros::Time::now();
+  t_ref_.header.frame_id = frame_id;
+
+  t_ref_.time_ref = ros::Time((m.wnR * 604800 + m.towMsR / 1000), (m.towMsR % 1000) * 1000000 + m.towSubMsR); 
+  
+  std::ostringstream src;
+  src << "TIM" << int(m.ch); 
+  t_ref_.source = src.str();
+
+  t_ref_.header.stamp = ros::Time::now(); // create a new timestamp
+  t_ref_.header.frame_id = frame_id;
+
+  publisher.publish(m);
+  time_ref_pub.publish(t_ref_);
 }
 
 void rtcmCallback(const rtcm_msgs::Message::ConstPtr &msg) {

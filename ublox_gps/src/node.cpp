@@ -114,7 +114,7 @@ void UbloxNode::addFirmwareInterface() {
 void UbloxNode::addProductInterface(std::string product_category,
                                     std::string ref_rov) {
 
-  ROS_DEBUG_STREAM("[U-Blox] adding component interface for product category" << product_category);
+  ROS_DEBUG_STREAM("[U-Blox] Adding component interface for product category " << product_category << ", " << ref_rov);
   
   if (product_category.compare("HPG") == 0 && ref_rov.compare("REF") == 0)
     components_.push_back(ComponentPtr(new HpgRefProduct));
@@ -1563,6 +1563,14 @@ void HpPosRecProduct::subscribe() {
 
   // Whether to publish the Heading info from Nav Relative Position NED
   nh->param("publish/nav/heading", enabled["nav_heading"], enabled["nav"]);
+
+  nh->param("publish/tim/tp", enabled["tim_tp"], enabled["tim"]);
+  if (enabled["tim_tp"])
+  {
+    gps.subscribe<ublox_msgs::TimTP>(boost::bind(
+      publish<ublox_msgs::TimTP>, _1, "timtp"), kSubscribeRate);
+    ROS_INFO("Subscribed to TIM-TP messages on topic tim/tp");
+  }
 }
 
 void HpPosRecProduct::callbackNavHpPosLlh(const ublox_msgs::NavHPPOSLLH& m) {
@@ -1672,14 +1680,6 @@ void TimProduct::subscribe() {
       &TimProduct::callbackTimTM2, this, _1), kSubscribeRate);
     
     ROS_INFO("Subscribed to TIM-TM2 messages on topic tim/tm2");
-  }
-
-  nh->param("publish/tim/tp", enabled["tim_tp"], enabled["tim"]);
-  if (enabled["tim_tp"])
-  {
-    gps.subscribe<ublox_msgs::TimTP>(boost::bind(
-      publish<ublox_msgs::TimTP>, _1, "timtp"), kSubscribeRate);
-    ROS_INFO("Subscribed to TIM-TP messages on topic tim/tp");
   }
 	
   // Subscribe to SFRBX messages

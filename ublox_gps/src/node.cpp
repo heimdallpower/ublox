@@ -114,7 +114,7 @@ void UbloxNode::addFirmwareInterface() {
 void UbloxNode::addProductInterface(std::string product_category,
                                     std::string ref_rov) {
 
-  ROS_DEBUG_STREAM("[U-Blox] Adding component interface for product category " << product_category << ", " << ref_rov);
+  ROS_DEBUG_STREAM("[U-Blox] Adding component interface for product category " << product_category);
   
   if (product_category.compare("HPG") == 0 && ref_rov.compare("REF") == 0)
     components_.push_back(ComponentPtr(new HpgRefProduct));

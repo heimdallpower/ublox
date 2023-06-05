@@ -1569,7 +1569,7 @@ void HpPosRecProduct::subscribe() {
   {
     gps.subscribe<ublox_msgs::TimTP>(boost::bind(
       publish<ublox_msgs::TimTP>, _1, "timtp"), kSubscribeRate);
-    ROS_INFO("Subscribed to TIM-TP messages on topic tim/tp");
+    ROS_DEBUG_STREAM("[U-Blox] Subscribed to TIM-TP messages on topic tim/tp");
   }
 }
 

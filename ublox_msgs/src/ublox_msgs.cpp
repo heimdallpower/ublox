@@ -204,3 +204,7 @@ DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::HNR, ublox_msgs::Message::HNR::PVT,
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::TIM, ublox_msgs::Message::TIM::TM2,
 		      ublox_msgs, TimTM2);
 
+// TIM messages
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::TIM, ublox_msgs::Message::TIM::TP,
+		      ublox_msgs, TimTP);
+

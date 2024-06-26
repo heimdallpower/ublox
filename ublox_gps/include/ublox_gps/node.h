@@ -623,7 +623,105 @@ class UbloxFirmware6 : public ComponentInterface {
  */
 template<typename NavPVT>
 class UbloxFirmware7Plus : public ComponentInterface {
+ public:
+  UbloxFirmware7Plus():
+  inlier_time_samples_{0},
+  pvt_publisher_{nh->advertise<NavPVT>("navpvt", kROSQueueSize)},
+  rostime_publisher_{nh->advertise<ublox_msgs::UBXRosTime>("rostime", kROSQueueSize)}
+  {
+    rostime_.ublox_utc_to_ros_aligned_time_offset_valid = false;
+    rostime_.ublox_utc_to_ros_aligned_time_offset       = ros::Duration(0.0);
+
+    uint32_t stable_alignment_count;
+    const bool all_params_supplied{
+      nh->getParam("rostime_alignment/enabled", align_time_) &&
+      nh->getParam("rostime_alignment/inlier_time_diff_threshold_sec", inlier_time_diff_threshold_s_) &&
+      getRosUint("rostime_alignment/stable_alignment_count", stable_alignment_count)
+    };
+    
+    if (!all_params_supplied)
+    {
+      ROS_FATAL_STREAM("[U-Blox] Lacking params required for PVT time alignment. Shutting down.");
+      ros::shutdown();
+    }
+    else
+      utc_meas2ros_time_deltas_.resize(stable_alignment_count);
+  }
+
+  /**
+   * @brief Publish a NavPVT message (and a UBXRosTime message with aligned ros time if enabled and available).
+   * @param m the message to publish
+   */
+  void callbackNavPvt(const NavPVT& m)
+  {
+    rostime_.header.stamp = ros::Time::now();
+
+    const bool subzero_nano{m.nano < 0};
+    rostime_.ublox_utc_time.sec   = static_cast<uint32_t>(toUtcSeconds(m) - subzero_nano);
+    rostime_.ublox_utc_time.nsec  = static_cast<uint32_t>(m.nano + (1000000000l * subzero_nano));
+
+    static constexpr uint8_t VALID_TIME_MASK{NavPVT::VALID_DATE | NavPVT::VALID_TIME | NavPVT::VALID_FULLY_RESOLVED};
+    rostime_.ublox_utc_time_valid = ((m.valid & VALID_TIME_MASK) == VALID_TIME_MASK) && (m.flags2 & NavPVT::FLAGS2_CONFIRMED_AVAILABLE);
+
+    if (!rostime_.ublox_utc_to_ros_aligned_time_offset_valid && align_time_)
+    {
+      if (!rostime_.ublox_utc_time_valid)
+      {
+        ROS_WARN_STREAM_THROTTLE(1.0, "[U-Blox] Awaiting valid PVT time before performing time alignment.");
+        inlier_time_samples_ = 0;
+        return;
+      }
+
+      utc_meas2ros_time_deltas_[inlier_time_samples_] = rostime_.header.stamp - rostime_.ublox_utc_time;
+
+      const double delta_diff{(
+        utc_meas2ros_time_deltas_[inlier_time_samples_] - utc_meas2ros_time_deltas_[0]
+      ).toSec()};
+
+      if (std::abs(delta_diff) < inlier_time_diff_threshold_s_)
+        ++inlier_time_samples_;
+      else
+      {
+        ROS_INFO_STREAM(
+          "[U-Blox] Restarting U-Blox time alignment after " << inlier_time_samples_ <<
+          " samples. |" << delta_diff << "| >=" << inlier_time_diff_threshold_s_
+        );
+        inlier_time_samples_ = 0;
+      }
+
+      rostime_.ublox_utc_to_ros_aligned_time_offset_valid = inlier_time_samples_ == utc_meas2ros_time_deltas_.size();
+      if (!rostime_.ublox_utc_to_ros_aligned_time_offset_valid)
+        return;
+
+      double accumulator{0.0};
+      for (const ros::Duration& delta: utc_meas2ros_time_deltas_)
+        accumulator += delta.toSec();
+      
+      const double utc_meas2ros_time_delta_secs{
+        accumulator / static_cast<double>(utc_meas2ros_time_deltas_.size())
+      };
+      rostime_.ublox_utc_to_ros_aligned_time_offset = ros::Duration(utc_meas2ros_time_delta_secs);
+      ROS_INFO_STREAM(
+        "[U-Blox] ***** Time alignment successfull. System ROS time of reception " << (utc_meas2ros_time_delta_secs < 0 ? "leads" : "lags") <<
+        " UBX-UTC time of measurement by " << std::abs(utc_meas2ros_time_delta_secs) << " secs. *****"
+      );
+    }
+
+    rostime_.iTOW = m.iTOW;
+    rostime_publisher_.publish(rostime_);
+
+    pvt_publisher_.publish(m);
+  }
+
  protected:
+  //! Time alignment
+  std::vector<ros::Duration> utc_meas2ros_time_deltas_;
+  double inlier_time_diff_threshold_s_;
+  uint32_t inlier_time_samples_;
+  bool align_time_;
+  //! Time publisher
+  ublox_msgs::UBXRosTime rostime_;
+  ros::Publisher rostime_publisher_;
   //! NavPvt publisher
   ros::Publisher pvt_publisher_;
   // Whether or not to enable the given GNSS

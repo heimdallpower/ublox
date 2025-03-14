@@ -358,65 +358,93 @@ void UbloxNode::subscribe() {
 }
 
 void UbloxNode::processMonVer() {
-  ublox_msgs::MonVER monVer;
-  if (!gps.poll(monVer))
-    throw std::runtime_error("Failed to poll MonVER & set relevant settings");
-
-  ROS_DEBUG("%s, HW VER: %s", monVer.swVersion.c_array(),
-               monVer.hwVersion.c_array());
-  // Convert extension to vector of strings
-  std::vector<std::string> extension;
-  extension.reserve(monVer.extension.size());
-  for(std::size_t i = 0; i < monVer.extension.size(); ++i) {
-    ROS_DEBUG("%s", monVer.extension[i].field.c_array());
-    // Find the end of the string (null character)
-    unsigned char* end = std::find(monVer.extension[i].field.begin(),
-          monVer.extension[i].field.end(), '\0');
-    extension.push_back(std::string(monVer.extension[i].field.begin(), end));
+  if (nopoll)
+  {
+    protocol_version_ = 27.12f;
+    addFirmwareInterface();
+    addProductInterface("HPG 1.13");
+    supported.insert("GPS");
+    supported.insert("GLO");
+    supported.insert("GAL");
+    supported.insert("BDS");
+    supported.insert("SBAS");
+    supported.insert("QZSS");
+    /**
+     * 
+     [DEBUG] [1741875073.623626171]: EXT CORE 1.00 (f10c36), HW VER: 00190000
+    [DEBUG] [1741875073.623776637]: ROM BASE 0x118B2060
+    [DEBUG] [1741875073.624211203]: FWVER=
+    [DEBUG] [1741875073.625038127]: PROTVER=27.12
+    [DEBUG] [1741875073.625483190]: MOD=ZED-F9P
+    [DEBUG] [1741875073.626066750]: GPS;GLO;GAL;BDS
+    [DEBUG] [1741875073.626499204]: SBAS;QZSS
+    [ INFO] [1741875073.626870602]: U-Blox Firmware Version: 9
+    [DEBUG] [1741875073.627230735]: [U-Blox] Adding component interface for product category HPG
+    */
   }
+  else
+  {
 
-  // Get the protocol version
-  for(std::size_t i = 0; i < extension.size(); ++i) {
-    std::size_t found = extension[i].find("PROTVER");
-    if (found != std::string::npos) {
-      protocol_version_ = ::atof(
-          extension[i].substr(8, extension[i].size()-8).c_str());
-      break;
+    ublox_msgs::MonVER monVer;
+    if (!gps.poll(monVer))
+      throw std::runtime_error("Failed to poll MonVER & set relevant settings");
+  
+    ROS_DEBUG("%s, HW VER: %s", monVer.swVersion.c_array(),
+                 monVer.hwVersion.c_array());
+    // Convert extension to vector of strings
+    std::vector<std::string> extension;
+    extension.reserve(monVer.extension.size());
+    for(std::size_t i = 0; i < monVer.extension.size(); ++i) {
+      ROS_DEBUG("%s", monVer.extension[i].field.c_array());
+      // Find the end of the string (null character)
+      unsigned char* end = std::find(monVer.extension[i].field.begin(),
+            monVer.extension[i].field.end(), '\0');
+      extension.push_back(std::string(monVer.extension[i].field.begin(), end));
     }
-  }
-  if (protocol_version_ == 0)
-    ROS_WARN("Failed to parse MonVER and determine protocol version. %s",
-             "Defaulting to firmware version 6.");
-  addFirmwareInterface();
-
-  if(protocol_version_ < 18) {
-    // Final line contains supported GNSS delimited by ;
-    std::vector<std::string> strs;
-    if(extension.size() > 0)
-      boost::split(strs, extension[extension.size()-1], boost::is_any_of(";"));
-    for(size_t i = 0; i < strs.size(); i++)
-      supported.insert(strs[i]);
-  } else {
+  
+    // Get the protocol version
     for(std::size_t i = 0; i < extension.size(); ++i) {
+      std::size_t found = extension[i].find("PROTVER");
+      if (found != std::string::npos) {
+        protocol_version_ = ::atof(
+            extension[i].substr(8, extension[i].size()-8).c_str());
+        break;
+      }
+    }
+    if (protocol_version_ == 0)
+      ROS_WARN("Failed to parse MonVER and determine protocol version. %s",
+               "Defaulting to firmware version 6.");
+    addFirmwareInterface();
+  
+    if(protocol_version_ < 18) {
+      // Final line contains supported GNSS delimited by ;
       std::vector<std::string> strs;
-      // Up to 2nd to last line
-      if(i <= extension.size() - 2) {
-        boost::split(strs, extension[i], boost::is_any_of("="));
-        if(strs.size() > 1) {
-          if (strs[0].compare(std::string("FWVER")) == 0) {
-            if(strs[1].length() > 8)
-              addProductInterface(strs[1].substr(0, 3), strs[1].substr(8, 10));
-            else
-              addProductInterface(strs[1].substr(0, 3));
-            continue;
+      if(extension.size() > 0)
+        boost::split(strs, extension[extension.size()-1], boost::is_any_of(";"));
+      for(size_t i = 0; i < strs.size(); i++)
+        supported.insert(strs[i]);
+    } else {
+      for(std::size_t i = 0; i < extension.size(); ++i) {
+        std::vector<std::string> strs;
+        // Up to 2nd to last line
+        if(i <= extension.size() - 2) {
+          boost::split(strs, extension[i], boost::is_any_of("="));
+          if(strs.size() > 1) {
+            if (strs[0].compare(std::string("FWVER")) == 0) {
+              if(strs[1].length() > 8)
+                addProductInterface(strs[1].substr(0, 3), strs[1].substr(8, 10));
+              else
+                addProductInterface(strs[1].substr(0, 3));
+              continue;
+            }
           }
         }
-      }
-      // Last 1-2 lines contain supported GNSS
-      if(i >= extension.size() - 2) {
-        boost::split(strs, extension[i], boost::is_any_of(";"));
-        for(size_t i = 0; i < strs.size(); i++)
-          supported.insert(strs[i]);
+        // Last 1-2 lines contain supported GNSS
+        if(i >= extension.size() - 2) {
+          boost::split(strs, extension[i], boost::is_any_of(";"));
+          for(size_t i = 0; i < strs.size(); i++)
+            supported.insert(strs[i]);
+        }
       }
     }
   }

@@ -362,7 +362,7 @@ void UbloxNode::processMonVer() {
   {
     protocol_version_ = 27.12f;
     addFirmwareInterface();
-    addProductInterface("HPG 1.13");
+    addProductInterface("HPG"); // HPG 1.13
     supported.insert("GPS");
     supported.insert("GLO");
     supported.insert("GAL");

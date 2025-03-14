@@ -1219,6 +1219,7 @@ void UbloxFirmware8::subscribe() {
 
   // Subscribe to RTCM messages
   nh->param("publish/rxm/rtcm", enabled["rxm_rtcm"], enabled["rxm"]);
+  ROS_ERROR_STREAM("In subscribe init. I will " << (enabled["rxm_rtcm"] ? "" : "NOT") << " sub to RxmRTCM messages.");
   if (enabled["rxm_rtcm"])
     gps.subscribe<ublox_msgs::RxmRTCM>(boost::bind(
         publish<ublox_msgs::RxmRTCM>, _1, "rxmrtcm"), kSubscribeRate);

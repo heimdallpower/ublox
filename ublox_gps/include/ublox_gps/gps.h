@@ -502,7 +502,7 @@ class Gps {
 template <typename T>
 void Gps::subscribe(
     typename CallbackHandler_<T>::Callback callback, unsigned int rate) {
-  if (!setRate(T::CLASS_ID, T::MESSAGE_ID, rate)) return;
+  // if (!setRate(T::CLASS_ID, T::MESSAGE_ID, rate)) return;
   subscribe<T>(callback);
 }
 

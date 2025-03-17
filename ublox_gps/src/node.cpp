@@ -143,10 +143,10 @@ void UbloxNode::getRosParams() {
   if (nopoll)
   {
     bool required_params_supplied{true};
-    required_params_supplied &= nh->getParam("nopoll_params/protocol_version", protocol_version_); // = 27.12f
-    required_params_supplied &= nh->getParam("nopoll_params/product_interface", product_interface_); // = "HPG"
+    required_params_supplied &= nh->getParam("nopoll_params/protocol_version", protocol_version_);
+    required_params_supplied &= nh->getParam("nopoll_params/product_interface", product_interface_);
     std::vector<std::string> supported_systems{};
-    required_params_supplied &= nh->getParam("nopoll_params/supported", supported_systems); // = {"GPS", "GLO", "GAL", "BDS", "SBAS", "QZSS"}
+    required_params_supplied &= nh->getParam("nopoll_params/supported", supported_systems);
     for (const auto& system: supported_systems)
       supported.insert(system);
 

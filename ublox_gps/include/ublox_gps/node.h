@@ -498,6 +498,8 @@ class UbloxNode : public virtual ComponentInterface {
 
   //! Determined From Mon VER
   float protocol_version_ = 0;
+  // !
+  std::string product_interface_ = "";
   // Variables set from parameter server
   //! Device port
   std::string device_;

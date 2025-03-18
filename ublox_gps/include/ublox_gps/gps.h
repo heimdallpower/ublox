@@ -336,7 +336,7 @@ class Gps {
    */
   template <typename T>
   void subscribe(typename CallbackHandler_<T>::Callback callback,
-                 unsigned int rate);
+                 unsigned int rate, bool nopoll = false);
   /**
    * @brief Subscribe to the given Ublox message.
    * @param the callback handler for the message
@@ -501,8 +501,8 @@ class Gps {
 
 template <typename T>
 void Gps::subscribe(
-    typename CallbackHandler_<T>::Callback callback, unsigned int rate) {
-  if (!setRate(T::CLASS_ID, T::MESSAGE_ID, rate)) return;
+    typename CallbackHandler_<T>::Callback callback, unsigned int rate, bool nopoll) {
+  if (!nopoll && !setRate(T::CLASS_ID, T::MESSAGE_ID, rate)) return;
   subscribe<T>(callback);
 }
 

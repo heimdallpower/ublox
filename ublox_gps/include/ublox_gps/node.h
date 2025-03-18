@@ -103,6 +103,7 @@ ublox_gps::Gps gps;
 //! Which GNSS are supported by the device
 std::set<std::string> supported;
 //! Whether or not to publish the given ublox message
+bool nopoll{true};
 /*!
  * key is the message name (all lowercase) without firmware version numbers
  * (e.g. NavPVT instead of NavPVT7). Value indicates whether or not to enable
@@ -497,6 +498,8 @@ class UbloxNode : public virtual ComponentInterface {
 
   //! Determined From Mon VER
   float protocol_version_ = 0;
+  // !
+  std::string product_interface_ = "";
   // Variables set from parameter server
   //! Device port
   std::string device_;

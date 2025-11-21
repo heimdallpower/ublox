@@ -27,6 +27,7 @@ find_package(std_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(ublox_msgs REQUIRED)
 find_package(ublox_serialization REQUIRED)
+find_package(class_loader REQUIRED)
 
 # build node
 add_library(ublox_gps
@@ -50,6 +51,7 @@ target_include_directories(ublox_gps PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
   ${diagnostic_updater_INCLUDE_DIRS}
+  ${ublox_msgs_INCLUDE_DIRS}
 )
 target_link_libraries(ublox_gps PUBLIC
   ${asio_LIBRARIES}
@@ -65,6 +67,7 @@ target_link_libraries(ublox_gps PUBLIC
   tf2::tf2
   ${ublox_msgs_TARGETS}
   ublox_serialization::ublox_serialization
+  class_loader::class_loader
 )
 
 install(TARGETS ublox_gps EXPORT export_${PROJECT_NAME}

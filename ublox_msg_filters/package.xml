@@ -13,8 +13,10 @@
   <url type="website">http://ros.org/wiki/ublox</url>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rclpy</depend>
   <depend>rcpputils</depend>
   <depend>ublox_msgs</depend>
   <depend>message_filters</depend>

@@ -22,10 +22,10 @@ include_directories(
 )
 
 # Example executable
-add_executable(${PROJECT_NAME}_example
+add_executable(synchronizer
   src/example.cpp
 )
-ament_target_dependencies(${PROJECT_NAME}_example
+ament_target_dependencies(synchronizer
   rclcpp
   rcpputils
   ublox_msgs
@@ -34,13 +34,23 @@ ament_target_dependencies(${PROJECT_NAME}_example
 
 # Install targets
 install(TARGETS
-  ${PROJECT_NAME}_example
+  synchronizer
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install Python executables
+install(PROGRAMS
+  scripts/talker.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
 # Install headers
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION include/${PROJECT_NAME}
+)
+
+install(DIRECTORY launch
+  DESTINATION share/${PROJECT_NAME}
 )
 
 ament_export_include_directories("include/${PROJECT_NAME}")

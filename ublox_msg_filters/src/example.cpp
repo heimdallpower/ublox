@@ -1,31 +1,45 @@
-#include "ros/ros.h"
+#include "rclcpp/rclcpp.hpp"
 #include <message_filters/subscriber.h>
 #include <ublox_msg_filters/exact_time.h>
-#include <ublox_msgs/NavHPPOSLLH.h>
-#include <ublox_msgs/NavRELPOSNED9.h>
-#include <ublox_msgs/NavVELNED.h>
+#include <ublox_msgs/msg/nav_hpposllh.hpp>
+#include <ublox_msgs/msg/nav_relposned9.hpp>
+#include <ublox_msgs/msg/nav_velned.hpp>
 
-void callback(const ublox_msgs::NavHPPOSLLHConstPtr &msg1,
-              const ublox_msgs::NavRELPOSNED9ConstPtr &msg2,
-              const ublox_msgs::NavVELNEDConstPtr &msg3) {
-  ROS_INFO("RX %u %u %u", msg1->iTOW, msg2->iTOW, msg3->iTOW);
+std::shared_ptr<rclcpp::Node> node;
+
+void callback
+(
+  const ublox_msgs::msg::NavHPPOSLLH::ConstSharedPtr msg1,
+  const ublox_msgs::msg::NavRELPOSNED9::ConstSharedPtr msg2,
+  const ublox_msgs::msg::NavVELNED::ConstSharedPtr msg3
+) {
+  RCLCPP_INFO(node->get_logger(), "RX %u %u %u", msg1->i_tow, msg2->i_tow, msg3->i_tow);
 }
 
+
 int main(int argc, char **argv) {
-  ros::init(argc, argv, "ublox_sync");
+  rclcpp::init(argc, argv);
+  node = std::make_shared<rclcpp::Node>("ublox_sync");
+  
+  constexpr size_t history_depth{10};
+  rclcpp::QoS qos(history_depth);
+  message_filters::Subscriber<ublox_msgs::msg::NavHPPOSLLH> sub1{node, "msg1", qos.get_rmw_qos_profile()};
+  message_filters::Subscriber<ublox_msgs::msg::NavRELPOSNED9> sub2{node, "msg2", qos.get_rmw_qos_profile()};
+  message_filters::Subscriber<ublox_msgs::msg::NavVELNED> sub3{node, "msg3", qos.get_rmw_qos_profile()};
+  
+  using namespace std::placeholders;
+  typedef ublox_msg_filters::ExactTime<
+  ublox_msgs::msg::NavHPPOSLLH,
+  ublox_msgs::msg::NavRELPOSNED9,
+  ublox_msgs::msg::NavVELNED
+  > MySyncPolicy;
 
-  ros::NodeHandle nh;
-  message_filters::Subscriber<ublox_msgs::NavHPPOSLLH> sub1(nh, "msg1", 1);
-  message_filters::Subscriber<ublox_msgs::NavRELPOSNED9> sub2(nh, "msg2", 1);
-  message_filters::Subscriber<ublox_msgs::NavVELNED> sub3(nh, "msg3", 1);
+  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(history_depth), sub1, sub2, sub3);
+  sync.registerCallback(callback);
 
-  typedef ublox_msg_filters::ExactTime<ublox_msgs::NavHPPOSLLH, ublox_msgs::NavRELPOSNED9, ublox_msgs::NavVELNED> MySyncPolicy;
-  message_filters::Synchronizer<MySyncPolicy> sync(MySyncPolicy(10), sub1, sub2, sub3);
-  sync.registerCallback(boost::bind(callback, _1, _2, _3));
+  RCLCPP_INFO_STREAM(node->get_logger(), "Ready to receive");
 
-  ROS_INFO("Ready to receive");
-
-  ros::spin();
-
+  rclcpp::spin(node);
+  rclcpp::shutdown();
   return 0;
 }

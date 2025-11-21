@@ -1,46 +1,48 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(ublox_msg_filters)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
+# Default to C++17
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic -Wno-unused-parameter -Wno-unused-function)
+endif()
+
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rcpputils REQUIRED)
+find_package(ublox_msgs REQUIRED)
+find_package(message_filters REQUIRED)
+
+# Include directories
+include_directories(
+  include
+)
+
+# Example executable
+add_executable(${PROJECT_NAME}_example
+  src/example.cpp
+)
+ament_target_dependencies(${PROJECT_NAME}_example
+  rclcpp
+  rcpputils
   ublox_msgs
   message_filters
 )
 
-catkin_package(
-  INCLUDE_DIRS include
-  CATKIN_DEPENDS ublox_msgs message_filters
+# Install targets
+install(TARGETS
+  ${PROJECT_NAME}_example
+  DESTINATION lib/${PROJECT_NAME}
 )
 
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
-
-add_executable(${PROJECT_NAME}_example
-  src/example.cpp
-)
-add_dependencies(${PROJECT_NAME}_example
-  ${catkin_EXPORTED_TARGETS}
-)
-target_link_libraries(${PROJECT_NAME}_example
-  ${catkin_LIBRARIES}
-)
-set_target_properties(${PROJECT_NAME}_example
-  PROPERTIES OUTPUT_NAME example PREFIX ""
-)
-
-add_compile_options(
-  -Wall
-  -Wextra
-  -Wno-unused-parameter
-  -Wno-unused-function
-)
-
+# Install headers
 install(DIRECTORY include/${PROJECT_NAME}/
-        DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  DESTINATION include/${PROJECT_NAME}
 )
 
-if (CATKIN_ENABLE_TESTING)
-  add_subdirectory(tests)
-endif()
+ament_export_include_directories("include/${PROJECT_NAME}")
+
+ament_package()

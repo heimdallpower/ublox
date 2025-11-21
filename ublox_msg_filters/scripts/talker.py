@@ -11,6 +11,14 @@ class Talker(Node):
         self.pub2 = self.create_publisher(NavRELPOSNED9, 'msg2', 2)
         self.pub3 = self.create_publisher(NavVELNED, 'msg3', 2)
         self.timer = self.create_timer(0.2, self.publish)
+        self.timer1 = self.create_timer(0.1, self.publish1)
+
+    def publish1(self):
+        self.get_logger().info("TX %u" % self.itow)
+        msg1 = NavHPPOSLLH()
+        msg1.i_tow = self.itow
+        self.pub1.publish(msg1)
+        self.itow += 1
 
     def publish(self):
         self.get_logger().info("TX %u" % self.itow)

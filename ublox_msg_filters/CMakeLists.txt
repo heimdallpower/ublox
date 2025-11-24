@@ -16,9 +16,17 @@ find_package(rcpputils REQUIRED)
 find_package(ublox_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 
-# Include directories
-include_directories(
-  include
+# Create interface library for header-only usage
+add_library(${PROJECT_NAME} INTERFACE)
+target_include_directories(${PROJECT_NAME} INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+)
+ament_target_dependencies(${PROJECT_NAME} INTERFACE
+  rclcpp
+  rcpputils
+  ublox_msgs
+  message_filters
 )
 
 # Example executable
@@ -31,11 +39,20 @@ ament_target_dependencies(synchronizer
   ublox_msgs
   message_filters
 )
+target_include_directories(synchronizer PRIVATE include)
 
 # Install targets
 install(TARGETS
   synchronizer
   DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install the interface library
+install(TARGETS ${PROJECT_NAME}
+  EXPORT ${PROJECT_NAME}Targets
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
 )
 
 # Install Python executables
@@ -45,7 +62,7 @@ install(PROGRAMS
 )
 
 # Install headers
-install(DIRECTORY include/${PROJECT_NAME}/
+install(DIRECTORY include/
   DESTINATION include/${PROJECT_NAME}
 )
 
@@ -53,6 +70,14 @@ install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
 
-ament_export_include_directories("include/${PROJECT_NAME}")
+# Export the targets
+ament_export_targets(${PROJECT_NAME}Targets HAS_LIBRARY_TARGET)
+ament_export_dependencies(
+  rclcpp
+  rcpputils
+  ublox_msgs
+  message_filters
+)
+ament_export_include_directories(include/${PROJECT_NAME})
 
 ament_package()

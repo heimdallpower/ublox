@@ -3035,6 +3035,36 @@ struct UbloxSerializer<ublox_msgs::msg::TimTM2_<ContainerAllocator> > {
 };
 
 template <typename ContainerAllocator>
+struct UbloxSerializer<ublox_msgs::msg::TimTP_<ContainerAllocator> > {
+  inline static void read(const uint8_t *data, uint32_t count,
+                          ublox_msgs::msg::TimTP_<ContainerAllocator> &m) {
+    UbloxIStream stream(const_cast<uint8_t *>(data), count);
+    stream.next(m.tow_ms);
+    stream.next(m.tow_sub_ms);
+    stream.next(m.q_err);
+    stream.next(m.week);
+    stream.next(m.flags);
+    stream.next(m.ref_info);
+  }
+
+  inline static uint32_t serializedLength(const ublox_msgs::msg::TimTP_<ContainerAllocator> &m) {
+    (void)m;
+    return 16;
+  }
+
+  inline static void write(uint8_t *data, uint32_t size,
+                           const ublox_msgs::msg::TimTP_<ContainerAllocator> &m) {
+    UbloxOStream stream(data, size);
+    stream.next(m.tow_ms);
+    stream.next(m.tow_sub_ms);
+    stream.next(m.q_err);
+    stream.next(m.week);
+    stream.next(m.flags);
+    stream.next(m.ref_info);
+  }
+};
+
+template <typename ContainerAllocator>
 struct UbloxSerializer<ublox_msgs::msg::UpdSOS_<ContainerAllocator> > {
   inline static void read(const uint8_t *data, uint32_t count,
                           ublox_msgs::msg::UpdSOS_<ContainerAllocator> &m) {

@@ -11,6 +11,7 @@
 #include <ublox_msgs/msg/rxm_rawx.hpp>
 #include <ublox_msgs/msg/rxm_sfrbx.hpp>
 #include <ublox_msgs/msg/tim_tm2.hpp>
+#include <ublox_msgs/msg/tim_tp.hpp>
 
 #include <ublox_gps/component_interface.hpp>
 #include <ublox_gps/gps.hpp>
@@ -56,11 +57,13 @@ class TimProduct final : public virtual ComponentInterface {
    * @details Publish recieved TimTM2 messages if enabled
    */
   void callbackTimTM2(const ublox_msgs::msg::TimTM2 &m);
+  void callbackTimTP(const ublox_msgs::msg::TimTP &m);
 
   sensor_msgs::msg::TimeReference t_ref_;
 
   rclcpp::Publisher<ublox_msgs::msg::TimTM2>::SharedPtr timtm2_pub_;
   rclcpp::Publisher<sensor_msgs::msg::TimeReference>::SharedPtr interrupt_time_pub_;
+  rclcpp::Publisher<ublox_msgs::msg::TimTP>::SharedPtr timtp_pub_;
   rclcpp::Publisher<ublox_msgs::msg::RxmSFRBX>::SharedPtr rxm_sfrb_pub_;
   rclcpp::Publisher<ublox_msgs::msg::RxmRAWX>::SharedPtr rxm_raw_pub_;
 

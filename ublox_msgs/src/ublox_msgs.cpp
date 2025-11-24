@@ -163,11 +163,11 @@ DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::TMODE3,
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::USB,
                       ublox_msgs, CfgUSB)
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::VALDEL,
-                      ublox_msgs, CfgVALDEL);
+                      ublox_msgs, CfgVALDEL)
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::VALGET,
-                      ublox_msgs, CfgVALGET);
+                      ublox_msgs, CfgVALGET)
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::CFG, ublox_msgs::Message::CFG::VALSET,
-                      ublox_msgs, CfgVALSET);
+                      ublox_msgs, CfgVALSET)
 
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::UPD, ublox_msgs::Message::UPD::SOS,
                       ublox_msgs, UpdSOS)
@@ -210,4 +210,6 @@ DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::HNR, ublox_msgs::Message::HNR::PVT,
 // TIM messages
 DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::TIM, ublox_msgs::Message::TIM::TM2,
 		      ublox_msgs, TimTM2)
+DECLARE_UBLOX_MESSAGE(ublox_msgs::Class::TIM, ublox_msgs::Message::TIM::TP,
+              ublox_msgs, TimTP)
 

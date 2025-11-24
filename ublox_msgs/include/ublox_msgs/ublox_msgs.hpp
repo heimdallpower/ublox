@@ -114,6 +114,7 @@
 #include <ublox_msgs/msg/hnr_pvt.hpp>
 
 #include <ublox_msgs/msg/tim_tm2.hpp>
+#include <ublox_msgs/msg/tim_tp.hpp>
 
 namespace ublox_msgs {
 
@@ -262,6 +263,7 @@ namespace Message {
 
   namespace TIM {
     static const uint8_t TM2 = ublox_msgs::msg::TimTM2::MESSAGE_ID;
+    static const uint8_t TP = ublox_msgs::msg::TimTP::MESSAGE_ID;
   }  // namespace TIM
 }  // namespace Message
 
